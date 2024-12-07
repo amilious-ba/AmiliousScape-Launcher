@@ -106,7 +106,6 @@ namespace Saradomin.Infrastructure.Services
             }
             catch (HttpRequestException e)
             {
-                NotificationBox.DisplayNotification("Error!", $"Plugin service unavailable: {e.Message}");
                 return new List<PluginInfo>();
             }
         }

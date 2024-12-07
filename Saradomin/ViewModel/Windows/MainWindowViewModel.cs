@@ -70,13 +70,20 @@ namespace Saradomin.ViewModel.Windows
                 await ExecuteLaunchSequence();
         }
 
+        private HtmlNode ConnectionErrorMessage(HtmlDocument doc, string msg)
+        {
+            var failMessage = "<html><body><h3>Not Available<h3><br/>This content is unavailable, likely due to a ";
+            doc.LoadHtml(failMessage + msg + "</body></html>");
+            return doc.DocumentNode;
+        }
+
         public async void MainViewLoaded(MainViewLoadedMessage _)
         {
             using (var httpClient = new HttpClient())
             {
                 HtmlNode node;
                 var doc = new HtmlDocument();
-                
+
                 try
                 {
                     var response =
@@ -86,10 +93,13 @@ namespace Saradomin.ViewModel.Windows
                 }
                 catch (HttpRequestException)
                 {
-                    doc.LoadHtml("<html><h3>Not Available<h3><br/><body>This content is unavailable, likely due to a lack of an internet connection.</body></html>");
-                    node = doc.DocumentNode;
+                    node = ConnectionErrorMessage(doc, "lack of an internet connection.");
                 }
-
+                if (node == null)
+                {
+                    // If 2009scape is blocked
+                    node = ConnectionErrorMessage(doc, "blocked internet connection. The stable server should still work.");
+                }
                 var renderer = new HtmlRenderer(node);
                 HtmlInlines = renderer.Render();
             }
