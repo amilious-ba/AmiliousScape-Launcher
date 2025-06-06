@@ -153,9 +153,8 @@ namespace Saradomin.Infrastructure.Services
 
             if (isUpdateCheck && updatedInfo.Version != info.Version)
             {
-                if (writePersistentUpdateFlag)
-                    await File.WriteAllTextAsync(filePath, fileContent + "\r\nUPDATEAVAILABLE=1");
                 info.UpdateAvailable = true;
+                if (writePersistentUpdateFlag) WritePluginInfoToFile(info, pluginFolder);
             }
                 
             info.Installed = File.Exists(Path.Combine(pluginFolder, "plugin.class"));
@@ -170,6 +169,7 @@ namespace Saradomin.Infrastructure.Services
             
             foreach (var lineInfo in lines.Select(t => t.Split("=")))
             {
+                if (parsedData.ContainsKey(lineInfo[0])) continue;
                 if (lineInfo.Length > 1)
                 {
                     parsedData.Add (lineInfo[0], lineInfo[1].Trim('\'').Trim());
@@ -202,6 +202,19 @@ namespace Saradomin.Infrastructure.Services
             }
 
             return info;
+        }
+        
+        public static void WritePluginInfoToFile(PluginInfo info, string pluginFolder)
+        {
+            var content = $"NAME={info.Name}\r\n" +
+                          $"AUTHOR={info.Author}\r\n" +
+                          $"DESCRIPTION={info.Description.Replace(System.Environment.NewLine, "\\\r\n")}\r\n" +
+                          $"VERSION={info.Version}";
+
+            if (info.UpdateAvailable)
+                content += "\r\nUPDATEAVAILABLE=1";
+            
+            File.WriteAllText(Path.Combine(pluginFolder, "plugin.properties"), content);
         }
     }
 }

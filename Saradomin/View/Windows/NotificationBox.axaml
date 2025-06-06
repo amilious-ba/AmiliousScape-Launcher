@@ -4,12 +4,13 @@
                    xmlns:glitonea="clr-namespace:Glitonea.Controls;assembly=Glitonea"
                    xmlns:mvvm="clr-namespace:Glitonea.Mvvm;assembly=Glitonea"
                    xmlns:windows="clr-namespace:Saradomin.ViewModel.Windows"
+                   xmlns:windows1="clr-namespace:Saradomin.View.Windows"
                    Title="{Binding Title}"
                    Height="120"
                    MaxWidth="400"
                    Background="{StaticResource WindowBackgroundBrush}"
                    CanResize="False"
-                   DataContext="{Binding #NotificationBox}"
+                   DataContext="{mvvm:DataContextSource windows1:NotificationBox}"
                    ShowActivated="True"
                    ShowInTaskbar="False"
                    SizeToContent="WidthAndHeight"
@@ -25,7 +26,7 @@
                            FontSize="14"
                            FontWeight="Light"
                            Foreground="{StaticResource AccentBrush}"
-                           Text="{Binding #NotificationBox.Title}"
+                           Text="{Binding Title}"
                            TextAlignment="Center">
                 </TextBlock>
             </Grid>

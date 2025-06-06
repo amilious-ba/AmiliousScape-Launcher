@@ -83,6 +83,7 @@
                                                     BorderThickness="1"
                                                     Classes="OutsideNavigator"
                                                     Command="{Binding $parent[local:PluginManagerView].DataContext.UpdateLocalPlugin}"
+                                                    CommandParameter="{Binding}"
                                                     VerticalAlignment="Top"
                                                     Content="Update"
                                                     IsVisible="{Binding CanUpdate}" />
@@ -100,8 +101,14 @@
                                                     Command="{Binding $parent[local:PluginManagerView].DataContext.UninstallLocalPlugin}"
                                                     CommandParameter="{Binding}"
                                                     VerticalAlignment="Top"
-                                                    Content="Uninstall"
-                                                    IsVisible="{Binding Installed}" />
+                                                    Content="Uninstall">
+                                                <Button.IsVisible>
+                                                    <MultiBinding Converter="{x:Static BoolConverters.And}">
+                                                        <Binding Path="!CanUpdate" />
+                                                        <Binding Path="Installed" />
+                                                    </MultiBinding>    
+                                                </Button.IsVisible>
+                                            </Button>
                                         </Grid>
                                     </Grid>
                                 </DataTemplate>
