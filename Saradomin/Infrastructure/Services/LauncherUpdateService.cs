@@ -21,6 +21,7 @@ namespace Saradomin.Infrastructure.Services
             CancellationToken cancellationToken = default)
         {
             var localVersion = GetLocalVersion();
+            
 
             using var http = CreateHttpClient();
             var json = await http.GetStringAsync(GitHubApiLatest, cancellationToken);

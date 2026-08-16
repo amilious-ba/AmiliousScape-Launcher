@@ -101,8 +101,8 @@
                                 <TextBlock Classes="NewsRenderView"
                                            MaxWidth="768"
                                            Margin="8"
-                                           Text="{Binding AmiliousNewsText}"
-                                           TextWrapping="Wrap" />
+                                           TextWrapping="Wrap"
+                                           Inlines="{Binding AmiliousNewsInlines}" />
                             </ScrollViewer>
                         </Border>
                     </TabItem>

@@ -1,8 +1,10 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Collections.Generic;
 using Glitonea.Mvvm;
 using System.Net.Http;
+using System.Reflection;
 using HtmlAgilityPack;
 using System.Threading;
 using Avalonia.Metadata;
@@ -12,8 +14,11 @@ using System.Threading.Tasks;
 using Glitonea.Mvvm.Messaging;
 using Saradomin.Infrastructure;
 using Avalonia.Controls.Documents;
+using Avalonia.Media;
 using Saradomin.Infrastructure.Services;
 using Saradomin.Model.Settings.Launcher;
+using static System.Environment;
+using Version = System.Version;
 
 namespace Saradomin.ViewModel.Windows {
     
@@ -32,7 +37,8 @@ namespace Saradomin.ViewModel.Windows {
         
         public string Title { get; set; } = "AmiliousScape Launcher";
         
-        public string AmiliousNewsText { get; set; } = "Loading AmiliousScape news...";
+        //public string AmiliousNewsText { get; set; } = "Loading AmiliousScape news...";
+        public InlineCollection AmiliousNewsInlines { get; set; } = new();
         
         public string LaunchLog { get; set; } = "Client log will appear here when you press Play.\n";
         
@@ -70,13 +76,33 @@ namespace Saradomin.ViewModel.Windows {
 
             _settingsService.Launcher.JavaExecutableLocation ??= CrossPlatform.LocateJavaExecutable();
         }
+        
+        private static Version GetLocalVersion()
+        {
+            var v = Assembly.GetExecutingAssembly().GetName().Version
+                    ?? new Version(0, 0, 0, 0);
+            return new Version(v.Major, v.Minor, Math.Max(v.Build, 0));
+        }
+        
+        private void SetTitle(Version local, Version remoteOrNull)
+        {
+            var localText = FormatVersion(local);
+
+            if (remoteOrNull != null && local > remoteOrNull)
+                Title = $"AmiliousScape Launcher - v{localText} (unpublished)";
+            else
+                Title = $"AmiliousScape Launcher - v{localText}";
+        }
+
+        private static string FormatVersion(Version v)
+            => $"{v.Major}.{v.Minor}.{v.Build}";
 
         private void OnLauncherDownloadProgressUpdated(object sender, float e) {
             LaunchText = $"Updating launcher... {e * 100:F0}%";
         }
 
         public void ExitApplication() {
-            Environment.Exit(0);
+            Exit(0);
         }
 
         public async void ClientLaunchRequested(ClientLaunchRequestedMessage _) {
@@ -85,7 +111,7 @@ namespace Saradomin.ViewModel.Windows {
         
         private void AppendLog(string line) {
             var stamp = DateTime.Now.ToString("HH:mm:ss");
-            LaunchLog += $"[{stamp}] {line}{Environment.NewLine}";
+            LaunchLog += $"[{stamp}] {line}{NewLine}";
             // Scroll AFTER log text has been updated
             new LogScrollRequestedMessage().Broadcast();
         }
@@ -97,6 +123,8 @@ namespace Saradomin.ViewModel.Windows {
         }
 
         public async void MainViewLoaded(MainViewLoadedMessage _) {
+            var local = GetLocalVersion();
+            SetTitle(local, null);
             // Load both in parallel
             await Task.WhenAll(
                 LoadAmiliousNewsAsync(),
@@ -111,6 +139,18 @@ namespace Saradomin.ViewModel.Windows {
             try
             {
                 var info = await _launcherUpdateService.CheckForUpdateAsync();
+
+                // Update window title from local vs GitHub tag
+                var local = GetLocalVersion();
+                Version remote = null;
+                if (!string.IsNullOrWhiteSpace(info.TagName))
+                {
+                    var cleaned = info.TagName.Trim().TrimStart('v', 'V');
+                    if (Version.TryParse(cleaned, out var parsed))
+                        remote = new Version(parsed.Major, parsed.Minor, Math.Max(parsed.Build, 0));
+                }
+                SetTitle(local, remote);
+
                 if (!info.UpdateAvailable)
                     return;
 
@@ -154,36 +194,118 @@ namespace Saradomin.ViewModel.Windows {
             catch
             {
                 // network / non-published build — ignore
+                SetTitle(GetLocalVersion(), null);
             }
         }
         
         public Task CheckLauncherUpdateFromSettingsAsync()
             => CheckLauncherUpdateAsync(promptIfAvailable: true);
 
-        private async Task LoadAmiliousNewsAsync() {
-            try
+        private async Task LoadAmiliousNewsAsync()
+{
+    try
+    {
+        using var http = new HttpClient();
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("AmiliousScape-Launcher");
+
+        var launcherTask = http.GetStringAsync(
+            "https://api.github.com/repos/amilious-ba/AmiliousScape-Launcher/releases");
+        var clientTask = http.GetStringAsync(
+            "https://api.github.com/repos/amilious-ba/RT4-Client/releases");
+
+        await Task.WhenAll(launcherTask, clientTask);
+
+        var entries = new List<(DateTime published, string kind, string name, string dateText, string body)>();
+
+        void AddReleases(string json, string kind)
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            foreach (var rel in doc.RootElement.EnumerateArray())
             {
-                using var httpClient = new HttpClient();
-                httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AmiliousScape-Launcher");
+                if (rel.TryGetProperty("draft", out var draft) && draft.GetBoolean())
+                    continue;
 
-                var json = await httpClient.GetStringAsync(
-                    "https://api.github.com/repos/amilious-ba/RT4-Client/releases/latest");
+                var tag = rel.TryGetProperty("tag_name", out var tagEl)
+                    ? tagEl.GetString() ?? ""
+                    : "";
 
-                using var doc = System.Text.Json.JsonDocument.Parse(json);
-                var root = doc.RootElement;
+                var name = rel.TryGetProperty("name", out var nameEl)
+                    ? nameEl.GetString()
+                    : null;
+                if (string.IsNullOrWhiteSpace(name))
+                    name = tag;
 
-                var name = root.GetProperty("name").GetString() ?? root.GetProperty("tag_name").GetString();
-                var body = root.TryGetProperty("body", out var bodyProp)
-                    ? bodyProp.GetString() : "(no release notes)";
-                var published = root.TryGetProperty("published_at", out var pub)
-                    ? pub.GetString() : "";
+                var body = rel.TryGetProperty("body", out var bodyEl)
+                    ? bodyEl.GetString()
+                    : "";
+                if (string.IsNullOrWhiteSpace(body))
+                    body = "(no release notes)";
 
-                AmiliousNewsText = $"{name}\n" + (string.IsNullOrWhiteSpace(published) ? 
-                                       "" : $"Published: {published}\n") + "\n" + (body ?? "");
-            } catch (Exception ex) {
-                AmiliousNewsText = $"Unable to load AmiliousScape release notes.\n\n{ex.Message}";
+                var published = DateTime.MinValue;
+                if (rel.TryGetProperty("published_at", out var pubEl)
+                    && DateTime.TryParse(pubEl.GetString(), out var dt))
+                {
+                    published = dt.ToUniversalTime();
+                }
+
+                var dateText = published == DateTime.MinValue
+                    ? "unknown date"
+                    : published.ToLocalTime().ToString("yyyy-MM-dd");
+
+                entries.Add((published, kind, name!, dateText, body));
             }
         }
+
+        AddReleases(await launcherTask, "Launcher");
+        AddReleases(await clientTask, "Client");
+
+        if (entries.Count == 0)
+        {
+            AmiliousNewsInlines = new InlineCollection
+            {
+                new Run("No releases found.")
+            };
+            return;
+        }
+
+        var inlines = new InlineCollection();
+
+        foreach (var e in entries.OrderByDescending(x => x.published))
+        {
+            // Bold + larger title
+            inlines.Add(new Run($"{e.kind} {e.name}")
+            {
+                FontWeight = FontWeight.Bold,
+                FontSize = 16
+            });
+
+            // Normal published date
+            inlines.Add(new Run($" — published {e.dateText}")
+            {
+                FontSize = 13
+            });
+            inlines.Add(new LineBreak());
+
+            // Indented notes
+            foreach (var line in e.body.Replace("\r\n", "\n").Split('\n'))
+            {
+                inlines.Add(new Run("    " + line) { FontSize = 13 });
+                inlines.Add(new LineBreak());
+            }
+
+            inlines.Add(new LineBreak());
+        }
+
+        AmiliousNewsInlines = inlines;
+    }
+    catch (Exception ex)
+    {
+        AmiliousNewsInlines = new InlineCollection
+        {
+            new Run($"Unable to load AmiliousScape release notes.\n\n{ex.Message}")
+        };
+    }
+}
 
 private async Task Load2009ScapeNewsAsync()
 {
