@@ -1,30 +1,29 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Net.Http;
-using System.Threading;
-using System.Threading.Tasks;
-using Avalonia.Controls;
-using Avalonia.Controls.Documents;
-using Avalonia.Metadata;
 using Glitonea.Mvvm;
-using Glitonea.Mvvm.Messaging;
+using System.Net.Http;
 using HtmlAgilityPack;
-using Saradomin.Infrastructure;
-using Saradomin.Infrastructure.Services;
-using Saradomin.Model.Settings.Launcher;
+using System.Threading;
+using Avalonia.Metadata;
 using Saradomin.Utilities;
 using Saradomin.View.Windows;
+using System.Threading.Tasks;
+using Glitonea.Mvvm.Messaging;
+using Saradomin.Infrastructure;
+using Avalonia.Controls.Documents;
+using Saradomin.Infrastructure.Services;
+using Saradomin.Model.Settings.Launcher;
 
-namespace Saradomin.ViewModel.Windows
-{
-    public class MainWindowViewModel : ViewModelBase
-    {
+namespace Saradomin.ViewModel.Windows {
+    
+    public class MainWindowViewModel : ViewModelBase {
+        
+        private readonly ISettingsService _settingsService;
         private readonly IClientLaunchService _launchService;
         private readonly IClientUpdateService _updateService;
         private readonly IJavaUpdateService _javaUpdateService;
         private readonly IRemoteConfigService _remoteConfigService;
-        private readonly ISettingsService _settingsService;
 
         private LauncherSettings Launcher { get; }
 
@@ -42,12 +41,9 @@ namespace Saradomin.ViewModel.Windows
         public bool DimContent { get; private set; }
         public InlineCollection HtmlInlines { get; private set; }
 
-        public MainWindowViewModel(IClientLaunchService launchService,
-            IClientUpdateService updateService,
-            ISettingsService settingsService,
-            IRemoteConfigService remoteConfigService,
-            IJavaUpdateService javaUpdateService)
-        {
+        public MainWindowViewModel(IClientLaunchService launchService, IClientUpdateService updateService,
+            ISettingsService settingsService, IRemoteConfigService remoteConfigService,
+            IJavaUpdateService javaUpdateService) {
             _launchService = launchService;
             _updateService = updateService;
             _updateService.DownloadProgressChanged += OnClientDownloadProgressUpdated;
@@ -66,74 +62,59 @@ namespace Saradomin.ViewModel.Windows
             _settingsService.Launcher.JavaExecutableLocation ??= CrossPlatform.LocateJavaExecutable();
         }
 
-        public void ExitApplication()
-        {
+        public void ExitApplication() {
             Environment.Exit(0);
         }
 
-        public async void ClientLaunchRequested(ClientLaunchRequestedMessage _)
-        {
-            if (CanLaunch)
-                await ExecuteLaunchSequence();
+        public async void ClientLaunchRequested(ClientLaunchRequestedMessage _) {
+            if (CanLaunch) await ExecuteLaunchSequence();
         }
         
-        private void AppendLog(string line)
-        {
+        private void AppendLog(string line) {
             var stamp = DateTime.Now.ToString("HH:mm:ss");
-            LaunchLog = LaunchLog + $"[{stamp}] {line}{Environment.NewLine}";
-
+            LaunchLog += $"[{stamp}] {line}{Environment.NewLine}";
             // Scroll AFTER log text has been updated
             new LogScrollRequestedMessage().Broadcast();
         }
 
-        private HtmlNode ConnectionErrorMessage(HtmlDocument doc, string msg)
-        {
+        private HtmlNode ConnectionErrorMessage(HtmlDocument doc, string msg) {
             var failMessage = "<html><body><h3>Not Available<h3><br/>This content is unavailable, likely due to a ";
             doc.LoadHtml(failMessage + msg + "</body></html>");
             return doc.DocumentNode;
         }
 
-        public async void MainViewLoaded(MainViewLoadedMessage _)
-{
-    // Load both in parallel
-    await Task.WhenAll(
-        LoadAmiliousNewsAsync(),
-        Load2009ScapeNewsAsync()
-    );
-}
+        public async void MainViewLoaded(MainViewLoadedMessage _) {
+            // Load both in parallel
+            await Task.WhenAll(
+                LoadAmiliousNewsAsync(),
+                Load2009ScapeNewsAsync()
+            );
+        }
 
-private async Task LoadAmiliousNewsAsync()
-{
-    try
-    {
-        using var httpClient = new HttpClient();
-        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AmiliousScape-Launcher");
+        private async Task LoadAmiliousNewsAsync() {
+            try
+            {
+                using var httpClient = new HttpClient();
+                httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AmiliousScape-Launcher");
 
-        var json = await httpClient.GetStringAsync(
-            "https://api.github.com/repos/amilious-ba/RT4-Client/releases/latest");
+                var json = await httpClient.GetStringAsync(
+                    "https://api.github.com/repos/amilious-ba/RT4-Client/releases/latest");
 
-        using var doc = System.Text.Json.JsonDocument.Parse(json);
-        var root = doc.RootElement;
+                using var doc = System.Text.Json.JsonDocument.Parse(json);
+                var root = doc.RootElement;
 
-        var name = root.GetProperty("name").GetString() ?? root.GetProperty("tag_name").GetString();
-        var body = root.TryGetProperty("body", out var bodyProp)
-            ? bodyProp.GetString()
-            : "(no release notes)";
-        var published = root.TryGetProperty("published_at", out var pub)
-            ? pub.GetString()
-            : "";
+                var name = root.GetProperty("name").GetString() ?? root.GetProperty("tag_name").GetString();
+                var body = root.TryGetProperty("body", out var bodyProp)
+                    ? bodyProp.GetString() : "(no release notes)";
+                var published = root.TryGetProperty("published_at", out var pub)
+                    ? pub.GetString() : "";
 
-        AmiliousNewsText =
-            $"{name}\n" +
-            (string.IsNullOrWhiteSpace(published) ? "" : $"Published: {published}\n") +
-            "\n" +
-            (body ?? "");
-    }
-    catch (Exception ex)
-    {
-        AmiliousNewsText = $"Unable to load AmiliousScape release notes.\n\n{ex.Message}";
-    }
-}
+                AmiliousNewsText = $"{name}\n" + (string.IsNullOrWhiteSpace(published) ? 
+                                       "" : $"Published: {published}\n") + "\n" + (body ?? "");
+            } catch (Exception ex) {
+                AmiliousNewsText = $"Unable to load AmiliousScape release notes.\n\n{ex.Message}";
+            }
+        }
 
 private async Task Load2009ScapeNewsAsync()
 {
@@ -264,84 +245,56 @@ private async Task Load2009ScapeNewsAsync()
             }
         }
 
-        private async Task AttemptServerProfileUpdate()
-        {
+        private async Task AttemptServerProfileUpdate() {
+            
             var serverProfilePath = CrossPlatform.GetServerProfilePath(CrossPlatform.GetAmiliousScapeHome());
-
-            try
-            {
-                await _remoteConfigService.FetchServerProfileConfig(
-                    serverProfilePath
-                );
-            }
-            catch
-            {
-                // Ignore. See next steps.
-            }
-
-            try
-            {
-                await _remoteConfigService.LoadServerProfileConfig(
-                    serverProfilePath
-                );
-            }
-            catch
-            {
-                _remoteConfigService.LoadFailsafeDefaults();
-            }
+            try {
+                await _remoteConfigService.FetchServerProfileConfig(serverProfilePath);
+            }catch { /* Ignore. See next steps. */ }
+            try {
+                await _remoteConfigService.LoadServerProfileConfig(serverProfilePath);
+            }catch { _remoteConfigService.LoadFailsafeDefaults(); }
 
             var relevantServerProfile = _remoteConfigService.AvailableProfiles.FirstOrDefault(
                 x => x.GameServerAddress == _settingsService.Client.GameServerAddress
             );
 
-            if (relevantServerProfile == null)
-                return;
+            if (relevantServerProfile == null) return;
 
             _settingsService.Client.GameServerPort = relevantServerProfile.GameServerPort;
             _settingsService.Client.CacheServerPort = relevantServerProfile.CacheServerPort;
             _settingsService.Client.WorldListServerPort = relevantServerProfile.WorldListServerPort;
         }
 
-        private async Task AttemptUpdate()
-        {
+        private async Task AttemptUpdate() {
+            
             LaunchText = "Updating...";
 
             var localClientHash = string.Empty;
             var remoteClientHash = string.Empty;
 
-            try
-            {
+            try {
                 LaunchText = "Updating... (Computing local checksum)";
                 localClientHash = await _updateService.ComputeLocalClientHashAsync();
-            }
-            catch (FileNotFoundException)
-            {
-                // Ignore. Client hash will stay empty.
-            }
+            }catch (FileNotFoundException) { /* Ignore. Client hash will stay empty.*/}
 
-            if (!string.IsNullOrEmpty(localClientHash))
-            {
+            if (!string.IsNullOrEmpty(localClientHash)) {
                 LaunchText = "Updating... (Fetching remote client checksum)";
                 remoteClientHash = await _updateService.FetchRemoteClientHashAsync(CancellationToken.None);
             }
 
-            if (string.IsNullOrEmpty(localClientHash)
-                || remoteClientHash.Trim().ToLower() != localClientHash!.Trim().ToLower())
-            {
+            if (string.IsNullOrEmpty(localClientHash) || 
+                remoteClientHash.Trim().ToLower() != localClientHash!.Trim().ToLower()) {
 
                 LaunchText = $"Updating... (Downloading client: 0%)";
                 Directory.CreateDirectory(CrossPlatform.GetAmiliousScapeHome());
 
-                try
-                {
+                try {
                     await _updateService.FetchRemoteClientExecutableAsync(CancellationToken.None);
-                }
-                catch (Exception)
-                {
+                }catch (Exception) {
                     var clientPath = _updateService.PreferredTargetFilePath;
 
-                    if (!File.Exists(clientPath))
-                    {
+                    if (!File.Exists(clientPath)) {
                         LaunchText = "Cannot launch. Missing client executable. Click me again to re-try.";
                         throw;
                     }
@@ -349,8 +302,7 @@ private async Task Load2009ScapeNewsAsync()
             }
         }
 
-        private bool IsJavaVersion(string major)
-        {
+        private bool IsJavaVersion(string major) {
             if (string.IsNullOrWhiteSpace(Launcher.JavaExecutableLocation) ||
                 !File.Exists(Launcher.JavaExecutableLocation))
                 return false;
@@ -361,23 +313,21 @@ private async Task Load2009ScapeNewsAsync()
             return javaVersionOutput.Contains($"version \"{major}");
         }
         
-        private void OnClientDownloadProgressUpdated(object sender, float e)
-        {
+        private void OnClientDownloadProgressUpdated(object sender, float e) {
             LaunchText = $"Updating... (Downloading client - {e * 100:F2}%)";
         }
-        private void OnJavaDownloadProgressUpdated(object sender, Tuple<float, bool> e)
-        {
-            if (e.Item2)
-            {
+        
+        private void OnJavaDownloadProgressUpdated(object sender, UpdateInfo updateInfo) {
+            if (updateInfo.IsFinished) {
                 LaunchText = "Play! (Multiplayer)";
                 return;
             }
-            if (e.Item1 >= 0.999f)
-            {
-                LaunchText = "Updating... (Extracting Java 11)";
+            if (updateInfo.ProgressPercentage >= 0.999f) {
+                LaunchText = $"Updating... (Extracting Java {updateInfo.Version})";
                 return;
             }
-            LaunchText = $"Updating... (Downloading Java 11 - {e.Item1 * 100:F2}%)";
+            LaunchText = $"Updating... (Downloading Java {updateInfo.Version} - {updateInfo.ProgressPercentage * 100:F2}%)";
         }
+        
     }
 }
