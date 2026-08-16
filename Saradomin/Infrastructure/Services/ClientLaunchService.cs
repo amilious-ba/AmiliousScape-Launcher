@@ -37,9 +37,9 @@ namespace Saradomin.Infrastructure.Services
                     Arguments =
                         $"-Dsun.java2d.uiScale={_settingsService.Client.UiScale} "
                         + $"-DclientFps={_settingsService.Client.Fps} "
-                        + $"-DclientHomeOverride=\"{CrossPlatform.Get2009scapeHome()}/\" "
+                        + $"-DclientHomeOverride=\"{CrossPlatform.GetAmiliousScapeHome()}/\" "
                         + $"-jar \"{_clientUpdateService.PreferredTargetFilePath}\"",
-                    WorkingDirectory = $"{CrossPlatform.Get2009scapeHome()}",
+                    WorkingDirectory = $"{CrossPlatform.GetAmiliousScapeHome()}",
                     UseShellExecute = true,
                     WindowStyle = ProcessWindowStyle.Hidden
                 }

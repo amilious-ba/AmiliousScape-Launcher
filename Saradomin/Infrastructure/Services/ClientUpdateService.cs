@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Net.Http;
 using System.Security.Cryptography;
-using System.Text;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using Saradomin.Model.Settings.Launcher;
@@ -16,11 +16,13 @@ namespace Saradomin.Infrastructure.Services
 
         private float CurrentDownloadProgress { get; set; }
 
-        public string ClientDownloadURL => "https://gitlab.com/2009scape/rt4-client/-/jobs/artifacts/master/raw/client/build/libs/rt4-client.jar?job=build";
-        public string ClientHashURL => "https://gitlab.com/2009scape/rt4-client/-/jobs/artifacts/master/raw/client/build/libs/rt4-client.jar.sha256?job=build";
+        // Just used for display / reference
+        public string ClientDownloadURL => "https://github.com/amilious-ba/RT4-Client/releases/latest";
+
+        private const string GitHubApiLatest = "https://api.github.com/repos/amilious-ba/RT4-Client/releases/latest";
 
         public string PreferredTargetFilePath =>
-            CrossPlatform.Get2009scapeExecutable();
+            CrossPlatform.GetAmiliousScapeExecutable();
 
         public event EventHandler<float> DownloadProgressChanged;
 
@@ -32,48 +34,78 @@ namespace Saradomin.Infrastructure.Services
         public async Task<string> FetchRemoteClientHashAsync(CancellationToken cancellationToken)
         {
             using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Saradomin-Launcher");
+
+            var releaseJson = await httpClient.GetStringAsync(GitHubApiLatest, cancellationToken);
+            using var doc = JsonDocument.Parse(releaseJson);
+
+            foreach (var asset in doc.RootElement.GetProperty("assets").EnumerateArray())
             {
-                var response = await httpClient.GetAsync(ClientHashURL, cancellationToken);
-                return await response.Content.ReadAsStringAsync(cancellationToken);
+                if (asset.GetProperty("name").GetString() == "client.jar")
+                {
+                    // GitHub returns "sha256:abcdef123..."
+                    var digest = asset.GetProperty("digest").GetString();
+                    if (digest != null && digest.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return digest.Substring(7).ToUpperInvariant(); // remove "sha256:" prefix
+                    }
+                }
             }
+
+            throw new Exception("Could not find client.jar or its digest in the latest GitHub release.");
         }
 
         public async Task FetchRemoteClientExecutableAsync(CancellationToken cancellationToken,
             string targetPath = null)
         {
             CurrentDownloadProgress = 0;
-
             targetPath ??= PreferredTargetFilePath;
 
             if (File.Exists(targetPath))
-            {
                 File.Delete(targetPath);
+
+            using var httpClient = new HttpClient();
+            httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("Saradomin-Launcher");
+
+            // Resolve the real download URL from the latest release
+            var releaseJson = await httpClient.GetStringAsync(GitHubApiLatest, cancellationToken);
+            using var doc = JsonDocument.Parse(releaseJson);
+
+            string downloadUrl = null;
+            foreach (var asset in doc.RootElement.GetProperty("assets").EnumerateArray())
+            {
+                if (asset.GetProperty("name").GetString() == "client.jar")
+                {
+                    downloadUrl = asset.GetProperty("browser_download_url").GetString();
+                    break;
+                }
             }
 
-            using (var httpClient = new HttpClient())
+            if (string.IsNullOrEmpty(downloadUrl))
+                throw new Exception("Could not find client.jar in the latest GitHub release.");
+
+            var response = await httpClient.GetAsync(downloadUrl, cancellationToken);
+            response.EnsureSuccessStatusCode();
+
+            var contentLength = response.Content.Headers.ContentLength ?? 12 * 1024 * 1024f;
+
+            using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var outFileStream = File.OpenWrite(targetPath);
+
+            var data = new byte[8192];
+            long totalRead = 0;
+
+            while (true)
             {
-                var response = await httpClient.GetAsync(ClientDownloadURL, cancellationToken);
-                var contentLength = response.Content.Headers.ContentLength ?? 12 * 1024 * 1024 * 1024f;
+                var dataRead = await responseStream.ReadAsync(data, 0, data.Length, cancellationToken);
+                if (dataRead <= 0)
+                    break;
 
-                using var responseStream = await response.Content.ReadAsStreamAsync(cancellationToken);
-                using var outFileStream = File.OpenWrite(targetPath);
+                await outFileStream.WriteAsync(data.AsMemory(0, dataRead), cancellationToken);
+                totalRead += dataRead;
 
-                var data = new byte[1024];
-                var totalRead = 0;
-
-                while (responseStream.Position < contentLength)
-                {
-                    var dataRead = await responseStream.ReadAsync(data, 0, data.Length, cancellationToken);
-
-                    if (dataRead <= 0)
-                        throw new IOException("Unexpected 0-byte read in network stream.");
-
-                    await outFileStream.WriteAsync(data[0..dataRead], cancellationToken);
-                    totalRead += dataRead;
-
-                    CurrentDownloadProgress = totalRead / contentLength;
-                    DownloadProgressChanged?.Invoke(this, CurrentDownloadProgress);
-                }
+                CurrentDownloadProgress = (float)(totalRead / contentLength);
+                DownloadProgressChanged?.Invoke(this, CurrentDownloadProgress);
             }
         }
 
@@ -85,12 +117,10 @@ namespace Saradomin.Infrastructure.Services
                 throw new FileNotFoundException($"Unable to calculate local client hash. File '{filePath}' missing.");
 
             await using var stream = File.OpenRead(filePath);
-            {
-                var sha256 = SHA256.Create();
-                stream.Position = 0;
-                var hash = await sha256.ComputeHashAsync(stream);
-                return BitConverter.ToString(hash).Replace("-", string.Empty);
-            }
+            using var sha256 = SHA256.Create();
+            stream.Position = 0;
+            var hash = await sha256.ComputeHashAsync(stream);
+            return BitConverter.ToString(hash).Replace("-", string.Empty).ToUpperInvariant();
         }
     }
 }

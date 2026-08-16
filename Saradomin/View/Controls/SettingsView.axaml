@@ -57,29 +57,80 @@
                                 Content="..."
                                 ToolTip.Tip="Browse..." />
                     </Grid>
-
-                    <Grid Margin="0,0,0,4"
-                          RowDefinitions="Auto, Auto">
-                        <TextBlock Grid.Row="0"
-                                   Margin="3,0,0,2"
-                                   HorizontalAlignment="Left"
-                                   Foreground="{StaticResource DarkForegroundBrush}"
-                                   Text="Server profile" />
-
-                        <ComboBox Grid.Row="1"
-                                  Margin="2,0,0,2"
-                                  ItemsSource="{Binding ServerProfiles}"
-                                  SelectedItem="{Binding ServerProfile, Converter={StaticResource EnumDescriptionConverter}, Mode=TwoWay}">
-                            <ComboBox.Styles>
-                                <Style Selector="ComboBoxItem">
-                                    <Setter Property="ToolTip.Tip" Value="{x:Null}" />
-                                </Style>
-                            </ComboBox.Styles>
-                        </ComboBox>
-                    </Grid>
+                    
                 </StackPanel>
             </HeaderedContentControl>
+            
+            <HeaderedContentControl Classes="GroupBox"
+                        DockPanel.Dock="Top"
+                        Header="client settings">
+    <StackPanel Margin="0,0,0,4" Spacing="8">
+        <Grid ColumnDefinitions="Auto,Auto">
+            <Grid Grid.Column="0"
+                  Margin="0,0,16,0"
+                  RowDefinitions="Auto,Auto">
+                <TextBlock Grid.Row="0"
+                           Margin="0,0,4,0"
+                           Foreground="{StaticResource DarkForegroundBrush}"
+                           Text="UI scale" />
 
+                <NumericUpDown Grid.Row="1"
+                               Width="55"
+                               Height="28"
+                               Margin="0,2,0,0"
+                               HorizontalAlignment="Left"
+                               HorizontalContentAlignment="Right"
+                               AllowSpin="True"
+                               Classes="NormalNumericUpDown"
+                               ClipValueToMinMax="True"
+                               FormatString="0"
+                               Maximum="4"
+                               Minimum="1"
+                               ParsingNumberStyle="Integer"
+                               ShowButtonSpinner="True"
+                               Value="{Binding Client.UiScale, Mode=TwoWay}" />
+            </Grid>
+
+            <Grid Grid.Column="1"
+                  RowDefinitions="Auto,Auto">
+                <TextBlock Grid.Row="0"
+                           Margin="0,0,4,0"
+                           Foreground="{StaticResource DarkForegroundBrush}"
+                           Text="Target FPS (0=auto)" />
+
+                <NumericUpDown Grid.Row="1"
+                               Width="55"
+                               Height="28"
+                               Margin="0,2,0,0"
+                               HorizontalAlignment="Left"
+                               HorizontalContentAlignment="Right"
+                               AllowSpin="True"
+                               Classes="NormalNumericUpDown"
+                               ClipValueToMinMax="True"
+                               FormatString="0"
+                               Maximum="1000"
+                               Minimum="0"
+                               ParsingNumberStyle="Integer"
+                               ShowButtonSpinner="True"
+                               Value="{Binding Client.Fps, Mode=TwoWay}" />
+            </Grid>
+        </Grid>
+
+        <StackPanel Spacing="4">
+            <CheckBox Content="Start fullscreen"
+                      IsChecked="{Binding Client.StartFullscreen, Mode=TwoWay}" />
+
+            <CheckBox Content="Borderless fullscreen"
+                      IsChecked="{Binding Client.BorderlessFullscreen, Mode=TwoWay}" />
+        </StackPanel>
+    </StackPanel>
+</HeaderedContentControl>
+
+            
+        </DockPanel>
+
+        <DockPanel Grid.Column="1"
+                   DockPanel.Dock="Top">
             <HeaderedContentControl Margin="2,2,0,0"
                                     Classes="GroupBox"
                                     DockPanel.Dock="Top"
@@ -92,98 +143,36 @@
                 </HeaderedContentControl.HeaderTemplate>
 
                 <StackPanel HorizontalAlignment="Center"
-                            VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal">
-                        <TextBlock HorizontalAlignment="Center"
-                                   Foreground="{StaticResource DarkForegroundBrush}"
+                            VerticalAlignment="Center"
+                            Spacing="4">
+                    <TextBlock HorizontalAlignment="Center"
+                               Foreground="{StaticResource DarkForegroundBrush}"
+                               Text="Edited with ❤ by Amilious based on Saradomin" />
+
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center">
+                        <TextBlock Foreground="{StaticResource DarkForegroundBrush}"
                                    Text="Made with ❤ by vddCore of " />
                         <Button Classes="Hyperlink"
                                 Command="{Binding LaunchScapeWebsite}"
                                 Content="2009scape." />
                     </StackPanel>
 
-                    <TextBlock Text=" " />
-
                     <TextBlock HorizontalAlignment="Center"
                                Foreground="{StaticResource DarkForegroundBrush}"
                                Text="{Binding VersionString}" />
 
-                    <Button Margin="0,0,0,4"
-                            HorizontalAlignment="Center"
+                    <Button HorizontalAlignment="Center"
                             Classes="Hyperlink"
                             Command="{Binding LaunchProjectWebsite}"
                             Content="visit project website" />
                 </StackPanel>
             </HeaderedContentControl>
-        </DockPanel>
-
-        <DockPanel Grid.Column="1"
-                   DockPanel.Dock="Top">
-            <HeaderedContentControl Classes="GroupBox"
-                                    DockPanel.Dock="Top"
-                                    Header="client settings">
-                <Grid RowDefinitions="Auto,*"
-                      Margin="0,0,0,4">
-                    <Grid Grid.Row="0" ColumnDefinitions="Auto, *">
-                        <Grid Grid.Column="0"
-                              RowDefinitions="Auto, Auto">
-                            <TextBlock Grid.Row="0"
-                                       Grid.Column="0"
-                                       Margin="0,0,4,0"
-                                       Foreground="{StaticResource DarkForegroundBrush}"
-                                       Text="UI scale" />
-
-                            <NumericUpDown Grid.Row="1"
-                                           Grid.Column="0"
-                                           Width="55"
-                                           Height="28"
-                                           Margin="0,2,0,0"
-                                           HorizontalAlignment="Left"
-                                           HorizontalContentAlignment="Right"
-                                           AllowSpin="True"
-                                           Classes="NormalNumericUpDown"
-                                           ClipValueToMinMax="True"
-                                           FormatString="0.00"
-                                           Maximum="4"
-                                           Minimum="1"
-                                           ParsingNumberStyle="Integer"
-                                           ShowButtonSpinner="True"
-                                           Value="{Binding Client.UiScale, Mode=TwoWay}" />
-                        </Grid>
-
-                        <Grid Grid.Column="1"
-                              RowDefinitions="Auto, Auto">
-                            <TextBlock Grid.Row="0"
-                                       Grid.Column="0"
-                                       Margin="0,0,4,0"
-                                       Foreground="{StaticResource DarkForegroundBrush}"
-                                       Text="Target FPS (0=auto)" />
-
-                            <NumericUpDown Grid.Row="1"
-                                           Grid.Column="0"
-                                           Width="55"
-                                           Height="28"
-                                           Margin="0,2,0,0"
-                                           HorizontalAlignment="Left"
-                                           HorizontalContentAlignment="Right"
-                                           AllowSpin="True"
-                                           Classes="NormalNumericUpDown"
-                                           ClipValueToMinMax="True"
-                                           FormatString="0"
-                                           Maximum="1000"
-                                           Minimum="0"
-                                           ParsingNumberStyle="Integer"
-                                           ShowButtonSpinner="True"
-                                           Value="{Binding Client.Fps, Mode=TwoWay}" />
-                        </Grid>
-                    </Grid>
-                </Grid>
-            </HeaderedContentControl>
             
             <HeaderedContentControl Classes="GroupBox"
                                     Header="plugin management"
                                     DockPanel.Dock="Top">
-                <controls:PluginManagerView MaxHeight="346"/>
+                <controls:PluginManagerView MaxHeight="310"/>
             </HeaderedContentControl>
         </DockPanel>
         

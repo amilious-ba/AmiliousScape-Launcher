@@ -67,16 +67,10 @@
                     <Button Grid.Column="1"
                             Classes="OutsideNavigator"
                             Command="{Binding LaunchPage}"
-                            CommandParameter="hiscores"
-                            Content="hi-scores" />
-
-                    <Button Grid.Column="2"
-                            Classes="OutsideNavigator"
-                            Command="{Binding LaunchPage}"
                             CommandParameter="discord"
                             Content="discord" />
 
-                    <Button Grid.Column="3"
+                    <Button Grid.Column="2"
                             Classes="OutsideNavigator"
                             Command="{Binding LaunchPage}"
                             CommandParameter="forums"
@@ -89,27 +83,44 @@
                             BorderBrush="{StaticResource DarkBorderBrush}"
                             Padding="0"
                             Classes="PageSelector">
-                    <TabItem Width="95"
+                    <TabItem Width="110"
                              HorizontalContentAlignment="Center"
                              CornerRadius="0,0,0,8"
-                             Header="what's new">
+                             Header="AmiliousScape">
                         <Border Margin="4,4,4,0"
                                 Background="{StaticResource MediumBackgroundBrush}"
                                 BorderBrush="{StaticResource SemiLightMediumBorderBrush}"
                                 BorderThickness="1,1,1,0"
                                 ClipToBounds="True"
                                 CornerRadius="6,6,0,0">
-                            <ScrollViewer HorizontalAlignment="Stretch"
-                                          Classes="MainViewScrollViewer"
-                                          ClipToBounds="True"
+                            <ScrollViewer Classes="MainViewScrollViewer"
+                                          HorizontalScrollBarVisibility="Hidden"
+                                          VerticalScrollBarVisibility="Visible">
+                                <TextBlock Classes="NewsRenderView"
+                                           MaxWidth="768"
+                                           Margin="8"
+                                           Text="{Binding AmiliousNewsText}"
+                                           TextWrapping="Wrap" />
+                            </ScrollViewer>
+                        </Border>
+                    </TabItem>
+
+                    <TabItem Width="110"
+                             HorizontalContentAlignment="Center"
+                             Header="2009Scape">
+                        <Border Margin="4,4,4,0"
+                                Background="{StaticResource MediumBackgroundBrush}"
+                                BorderBrush="{StaticResource SemiLightMediumBorderBrush}"
+                                BorderThickness="1,1,1,0"
+                                ClipToBounds="True"
+                                CornerRadius="6,6,0,0">
+                            <ScrollViewer Classes="MainViewScrollViewer"
                                           HorizontalScrollBarVisibility="Hidden"
                                           VerticalScrollBarVisibility="Visible">
                                 <TextBlock Classes="NewsRenderView"
                                            MaxWidth="768"
                                            Inlines="{Binding HtmlInlines}"
-                                           HorizontalAlignment="Stretch"
-                                           VerticalAlignment="Stretch" 
-                                           TextWrapping="Wrap"/>
+                                           TextWrapping="Wrap" />
                             </ScrollViewer>
                         </Border>
                     </TabItem>
@@ -132,22 +143,6 @@
                         </Border>
                     </TabItem>
                     
-                    <TabItem Width="95"
-                             HorizontalContentAlignment="Center"
-                             CornerRadius="0,0,8,0"
-                             Header="singleplayer">
-                        <Border Margin="4,4,4,0"
-                                Background="{StaticResource MediumBackgroundBrush}"
-                                BorderBrush="{StaticResource SemiLightMediumBorderBrush}"
-                                BorderThickness="1,1,1,0"
-                                CornerRadius="6,6,0,0">
-                            <ScrollViewer Classes="MainViewScrollViewer"
-                                          HorizontalScrollBarVisibility="Hidden"
-                                          VerticalScrollBarVisibility="Visible">
-                                <controls:SingleplayerView VerticalAlignment="Stretch" />
-                            </ScrollViewer>
-                        </Border>
-                    </TabItem>
                 </TabControl>
 
                 <Border Grid.Row="2"

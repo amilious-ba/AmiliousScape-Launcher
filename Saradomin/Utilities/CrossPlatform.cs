@@ -181,25 +181,25 @@ namespace Saradomin.Utilities
                 );
         }
 
-        public static string Get2009scapeHome()
+        public static string GetAmiliousScapeHome()
         {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)
                 || RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD))
             {
                 return Path.Combine(
                     LocateUnixUserHome(),
-                    "2009scape"
+                    "AmiliousScape"
                 );
             }
             else
             {
                 var userProfile = Path.Combine (
                     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                    "2009scape"
+                    "AmiliousScape"
                 );
                 var appData = Path.Combine(
                     Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                    "2009scape"
+                    "AmiliousScape"
                 );
                 return Directory.Exists(userProfile) ? userProfile : appData;
             }
@@ -213,26 +213,26 @@ namespace Saradomin.Utilities
                 return Path.Combine(
                     // Get the XDG_DATA_HOME environment variable, or if it doesn't exist, use the default ~/.local/share
                     LocateUnixUserHome(),
-                    "2009scape",
+                    "AmiliousScape",
                     "saradomin"
                 );
             }
 
             return Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "2009scape",
+                "AmiliousScape",
                 "saradomin"
             );
         }
 
         public static string GetSingleplayerBackupsHome()
         {
-            return Path.Combine(Get2009scapeHome(), "singleplayer_backups");
+            return Path.Combine(GetAmiliousScapeHome(), "singleplayer_backups");
         }
 
         public static string GetSingleplayerHome()
         {
-            return Path.Combine(Get2009scapeHome(), "singleplayer");
+            return Path.Combine(GetAmiliousScapeHome(), "singleplayer");
         }
 
         public static string LocateSingleplayerExecutable()
@@ -240,14 +240,14 @@ namespace Saradomin.Utilities
             return Path.Combine(GetSingleplayerHome(), RuntimeInformation.IsOSPlatform(OSPlatform.Windows) ? "launch.bat" : "launch.sh");
         }
         
-        public static string Get2009scapeExecutable()
+        public static string GetAmiliousScapeExecutable()
         {
-            return Path.Combine(Get2009scapeHome(), "2009scape.jar");
+            return Path.Combine(GetAmiliousScapeHome(), "AmiliousScape.jar");
         }
 
         public static string GetServerProfilePath(string baseDirectory)
         {
-            baseDirectory ??= Get2009scapeHome();
+            baseDirectory ??= GetAmiliousScapeHome();
             return Path.Combine(baseDirectory, "server_profiles.json");
         }
 

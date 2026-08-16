@@ -28,10 +28,12 @@ namespace Saradomin.ViewModel.Windows
 
         private LauncherSettings Launcher { get; }
 
-        public string Title { get; set; } = "2009scape launcher";
+        public string Title { get; set; } = "AmiliousScape Launcher";
+        
+        public string AmiliousNewsText { get; set; } = "Loading AmiliousScape news...";
         
         public bool CanLaunch { get; private set; } = true;
-        public string LaunchText { get; private set; } = "Play!";
+        public string LaunchText { get; private set; } = "Play AmiliousScape!";
 
         public bool DimContent { get; private set; }
         public InlineCollection HtmlInlines { get; private set; }
@@ -78,32 +80,73 @@ namespace Saradomin.ViewModel.Windows
         }
 
         public async void MainViewLoaded(MainViewLoadedMessage _)
-        {
-            using (var httpClient = new HttpClient())
-            {
-                HtmlNode node;
-                var doc = new HtmlDocument();
+{
+    // Load both in parallel
+    await Task.WhenAll(
+        LoadAmiliousNewsAsync(),
+        Load2009ScapeNewsAsync()
+    );
+}
 
-                try
-                {
-                    var response =
-                        await httpClient.GetAsync("https://2009scape.org/services/m=news/archives/latest.html");
-                    doc.Load(await response.Content.ReadAsStreamAsync());
-                    node = doc.DocumentNode.SelectSingleNode("//div[@class='msgcontents']");
-                }
-                catch (HttpRequestException)
-                {
-                    node = ConnectionErrorMessage(doc, "lack of an internet connection.");
-                }
-                if (node == null)
-                {
-                    // If 2009scape is blocked
-                    node = ConnectionErrorMessage(doc, "blocked internet connection. The stable server should still work.");
-                }
-                var renderer = new HtmlRenderer(node);
-                HtmlInlines = renderer.Render();
-            }
-        }
+private async Task LoadAmiliousNewsAsync()
+{
+    try
+    {
+        using var httpClient = new HttpClient();
+        httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("AmiliousScape-Launcher");
+
+        var json = await httpClient.GetStringAsync(
+            "https://api.github.com/repos/amilious-ba/RT4-Client/releases/latest");
+
+        using var doc = System.Text.Json.JsonDocument.Parse(json);
+        var root = doc.RootElement;
+
+        var name = root.GetProperty("name").GetString() ?? root.GetProperty("tag_name").GetString();
+        var body = root.TryGetProperty("body", out var bodyProp)
+            ? bodyProp.GetString()
+            : "(no release notes)";
+        var published = root.TryGetProperty("published_at", out var pub)
+            ? pub.GetString()
+            : "";
+
+        AmiliousNewsText =
+            $"{name}\n" +
+            (string.IsNullOrWhiteSpace(published) ? "" : $"Published: {published}\n") +
+            "\n" +
+            (body ?? "");
+    }
+    catch (Exception ex)
+    {
+        AmiliousNewsText = $"Unable to load AmiliousScape release notes.\n\n{ex.Message}";
+    }
+}
+
+private async Task Load2009ScapeNewsAsync()
+{
+    using var httpClient = new HttpClient();
+    HtmlNode node;
+    var doc = new HtmlDocument();
+
+    try
+    {
+        var response =
+            await httpClient.GetAsync("https://2009scape.org/services/m=news/archives/latest.html");
+        doc.Load(await response.Content.ReadAsStreamAsync());
+        node = doc.DocumentNode.SelectSingleNode("//div[@class='msgcontents']");
+    }
+    catch (HttpRequestException)
+    {
+        node = ConnectionErrorMessage(doc, "lack of an internet connection.");
+    }
+
+    if (node == null)
+    {
+        node = ConnectionErrorMessage(doc, "blocked internet connection. The stable server should still work.");
+    }
+
+    var renderer = new HtmlRenderer(node);
+    HtmlInlines = renderer.Render();
+}
 
         public void NotificatationBoxStateChanged(NotificationBoxStateChangedMessage msg)
         {
@@ -116,9 +159,8 @@ namespace Saradomin.ViewModel.Windows
             {
                 "news" => "https://2009scape.org/services/m=news/archives/latest.html",
                 "issues" => "https://gitlab.com/2009scape/2009scape/-/issues",
-                "hiscores" => "https://2009scape.org/services/m=hiscore/hiscores.html?world=2",
                 "forums" => "https://forum.2009scape.org",
-                "discord" => "https://discord.gg/43YPGND",
+                "discord" => "https://discord.gg/BBx8Vrf9Yd",
                 _ => throw new ArgumentException($"{parameter} is not a valid page parameter.")
             };
 
@@ -166,12 +208,15 @@ namespace Saradomin.ViewModel.Windows
             }
             
 
-            if (!File.Exists(CrossPlatform.GetServerProfilePath(CrossPlatform.Get2009scapeHome())) ||
+            if (!File.Exists(CrossPlatform.GetServerProfilePath(CrossPlatform.GetAmiliousScapeHome())) ||
                 _settingsService.Launcher.CheckForServerProfilesOnLaunch)
                 await AttemptServerProfileUpdate();
 
             try
             {
+                // Make sure config.json has the latest settings (fullscreen toggles, etc.)
+                _settingsService.SaveAll();
+                
                 LaunchText = "Play! (already running)";
                 {
                     // Will block this task until client process exits.
@@ -198,7 +243,7 @@ namespace Saradomin.ViewModel.Windows
 
         private async Task AttemptServerProfileUpdate()
         {
-            var serverProfilePath = CrossPlatform.GetServerProfilePath(CrossPlatform.Get2009scapeHome());
+            var serverProfilePath = CrossPlatform.GetServerProfilePath(CrossPlatform.GetAmiliousScapeHome());
 
             try
             {
@@ -262,7 +307,7 @@ namespace Saradomin.ViewModel.Windows
             {
 
                 LaunchText = $"Updating... (Downloading client: 0%)";
-                Directory.CreateDirectory(CrossPlatform.Get2009scapeHome());
+                Directory.CreateDirectory(CrossPlatform.GetAmiliousScapeHome());
 
                 try
                 {

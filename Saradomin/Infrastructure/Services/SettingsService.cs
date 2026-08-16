@@ -13,7 +13,7 @@ namespace Saradomin.Infrastructure.Services
         public ClientSettings Client { get; private set; } = new();
 
         private string ClientSettingsPath
-            => Path.Combine(CrossPlatform.Get2009scapeHome(), ClientSettings.FileName);
+            => Path.Combine(CrossPlatform.GetAmiliousScapeHome(), ClientSettings.FileName);
         
         private string LauncherSettingsPath
             => Path.Combine(CrossPlatform.GetSaradominHome(), LauncherSettings.FileName);
@@ -45,7 +45,7 @@ namespace Saradomin.Infrastructure.Services
                 SaveLauncherSettings();
             }
 
-            Directory.CreateDirectory(CrossPlatform.Get2009scapeHome());
+            Directory.CreateDirectory(CrossPlatform.GetAmiliousScapeHome());
             if (File.Exists(ClientSettingsPath))
             {
                 using (var stream = File.OpenRead(ClientSettingsPath))

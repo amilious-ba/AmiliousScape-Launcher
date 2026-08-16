@@ -1,5 +1,3 @@
-using System;
-using System.ComponentModel;
 using System.Text.Json.Serialization;
 
 namespace Saradomin.Model.Settings.Client
@@ -8,30 +6,11 @@ namespace Saradomin.Model.Settings.Client
     {
         public const string FileName = "config.json";
 
-        public const string LiveServerAddress = "play.2009scape.org";
-        public const string TestServerAddress = "test.2009scape.org";
-        public const string LocalServerAddress = "localhost";
-
-        public enum ServerProfile
-        {
-            [Description("Stable server;play.2009scape.org")]
-            Live,
-            
-            [Description("Testing server;test.2009scape.org")]
-            Testing,
-            
-            [Description("Local server;localhost")]
-            Local,
-            
-            [Description("Unsupported server")]
-            Unsupported
-        }
-
         [JsonPropertyName("ip_management")]
-        public string ManagementServerAddress { get; set; } = LiveServerAddress;
+        public string ManagementServerAddress { get; set; } = "amilious.xyz";
 
         [JsonPropertyName("ip_address")]
-        public string GameServerAddress { get; set; } = LiveServerAddress;
+        public string GameServerAddress { get; set; } = "amilious.xyz";
         
         [JsonPropertyName("world")]
         public ushort World { get; set; } = 1;
@@ -44,6 +23,15 @@ namespace Saradomin.Model.Settings.Client
 
         [JsonPropertyName("js5_port")]
         public ushort CacheServerPort { get; set; } = 43595;
+
+        [JsonPropertyName("pluginsFolder")]
+        public string PluginsFolder { get; set; } = "plugins";
+
+        [JsonPropertyName("borderlessFullscreen")]
+        public bool BorderlessFullscreen { get; set; } = false;
+
+        [JsonPropertyName("startFullscreen")]
+        public bool StartFullscreen { get; set; } = true;
 
         [JsonPropertyName("ui_scale")]
         public int UiScale { get; set; } = 1;

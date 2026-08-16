@@ -14,7 +14,7 @@ namespace Saradomin.Infrastructure.Services
 
         public PluginManagementService(ISettingsService settings)
         {
-            PluginRepositoryPath = Path.Combine(CrossPlatform.Get2009scapeHome(), "plugins");
+            PluginRepositoryPath = Path.Combine(CrossPlatform.GetAmiliousScapeHome(), "plugins");
         }
 
         public Task<List<string>> EnumerateInstalledPlugins()

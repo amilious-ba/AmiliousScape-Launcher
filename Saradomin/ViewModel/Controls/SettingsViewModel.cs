@@ -1,5 +1,4 @@
 using System;
-using System.Collections.ObjectModel;
 using System.Reflection;
 using System.Threading.Tasks;
 using Avalonia;
@@ -7,7 +6,6 @@ using Avalonia.Platform.Storage;
 using Glitonea.Extensions;
 using Glitonea.Mvvm;
 using Glitonea.Mvvm.Messaging;
-using Glitonea.Utilities;
 using Saradomin.Infrastructure;
 using Saradomin.Infrastructure.Services;
 using Saradomin.Model.Settings.Client;
@@ -32,57 +30,21 @@ namespace Saradomin.ViewModel.Controls
             }
         }
 
-        public ClientSettings.ServerProfile ServerProfile
-        {
-            get
-            {
-                switch (Client.GameServerAddress)
-                {
-                    case ClientSettings.LiveServerAddress:
-                        return ClientSettings.ServerProfile.Live;
-
-                    case ClientSettings.TestServerAddress:
-                        return ClientSettings.ServerProfile.Testing;
-
-                    case ClientSettings.LocalServerAddress:
-                        return ClientSettings.ServerProfile.Local;
-
-                    default:
-                        return ClientSettings.ServerProfile.Unsupported;
-                }
-            }
-
-            set
-            {
-                Client.ManagementServerAddress = value.ToDescription().Hint;
-                Client.GameServerAddress = value.ToDescription().Hint;
-
-                OnPropertyChanged(nameof(ServerProfile));
-            }
-        }
-
-        public ObservableCollection<EnumDescription> ServerProfiles { get; private set; } = new()
-        {
-            ClientSettings.ServerProfile.Live.ToDescription(),
-            ClientSettings.ServerProfile.Testing.ToDescription(),
-            ClientSettings.ServerProfile.Local.ToDescription()
-        };
-
         public SettingsViewModel(ISettingsService settingsService)
         {
             _settingsService = settingsService;
 
-           Message.Subscribe<MainViewLoadedMessage>(this, OnMainViewLoaded);
+            Message.Subscribe<MainViewLoadedMessage>(this, OnMainViewLoaded);
         }
         
         public void LaunchScapeWebsite()
-            => CrossPlatform.LaunchURL("https://2009scape.org");
+            => CrossPlatform.LaunchURL("https://amilious.xyz");   // change if you want
 
         public void OpenPluginTutorial()
             => CrossPlatform.LaunchURL("https://gitlab.com/2009scape/tools/client-plugins");
 
         public void LaunchProjectWebsite()
-            => CrossPlatform.LaunchURL("https://gitlab.com/2009scape/Saradomin-Launcher");
+            => CrossPlatform.LaunchURL("https://github.com/amilious-ba/RT4-Client");  // or your launcher repo later
 
         public async Task BrowseForJavaExecutable()
         {
@@ -91,7 +53,7 @@ namespace Saradomin.ViewModel.Controls
             {
                 Title = "Browse for Java...",
                 AllowMultiple = false,
-                SuggestedStartLocation =await window!.StorageProvider.TryGetFolderFromPathAsync(
+                SuggestedStartLocation = await window!.StorageProvider.TryGetFolderFromPathAsync(
                     Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)
                 )
             };
