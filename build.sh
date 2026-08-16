@@ -5,21 +5,24 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$ROOT_DIR/Saradomin"
 OUT_DIR="$ROOT_DIR/dist"
 
-echo "==> Building AmiliousScape Launcher"
-echo "Root: $ROOT_DIR"
+read -r -p "Version (e.g. 1.7.0): " VERSION
+if [[ -z "${VERSION}" ]]; then
+  echo "Version is required."
+  exit 1
+fi
 
+echo "==> Building AmiliousScape Launcher v${VERSION}"
 mkdir -p "$OUT_DIR"
 cd "$PROJECT_DIR"
 
-# Stop any running launcher that might lock the output
 pkill -9 -f "[Ss]aradomin" 2>/dev/null || true
 
-echo "==> Restoring packages"
 dotnet restore
 
 COMMON_FLAGS=(
   -c Release
   --self-contained true
+  -p:Version="${VERSION}"
   -p:PublishSingleFile=true
   -p:PublishReadyToRun=true
   -p:IncludeNativeLibrariesForSelfExtract=true
@@ -39,8 +42,5 @@ dotnet publish -r win-x64 "${COMMON_FLAGS[@]}"
 cp -f "bin/Release/net6.0/win-x64/publish/Saradomin.exe" \
   "$OUT_DIR/AmiliousScape-Launcher-win-x64.exe"
 
-echo
-echo "==> Done"
-echo "Linux:   $OUT_DIR/AmiliousScape-Launcher-linux-x64"
-echo "Windows: $OUT_DIR/AmiliousScape-Launcher-win-x64.exe"
+echo "==> Done v${VERSION}"
 ls -lh "$OUT_DIR"
