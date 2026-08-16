@@ -67,10 +67,6 @@
         <Compile Update="View\Controls\PluginManagerView.axaml.cs">
           <DependentUpon>PluginManagerView.axaml</DependentUpon>
         </Compile>
-        <Compile Update="View\Controls\SingleplayerView.axaml.cs">
-          <DependentUpon>SingleplayerView.axaml</DependentUpon>
-          <SubType>Code</SubType>
-        </Compile>
     </ItemGroup>
 
     <ItemGroup>
