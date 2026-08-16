@@ -24,6 +24,7 @@ namespace Saradomin.ViewModel.Windows {
         private readonly IClientUpdateService _updateService;
         private readonly IJavaUpdateService _javaUpdateService;
         private readonly IRemoteConfigService _remoteConfigService;
+        private readonly ILauncherUpdateService _launcherUpdateService;
 
         private LauncherSettings Launcher { get; }
 
@@ -43,13 +44,15 @@ namespace Saradomin.ViewModel.Windows {
 
         public MainWindowViewModel(IClientLaunchService launchService, IClientUpdateService updateService,
             ISettingsService settingsService, IRemoteConfigService remoteConfigService,
-            IJavaUpdateService javaUpdateService) {
+            IJavaUpdateService javaUpdateService, ILauncherUpdateService launcherUpdateService) {
             _launchService = launchService;
             _updateService = updateService;
             _updateService.DownloadProgressChanged += OnClientDownloadProgressUpdated;
             _remoteConfigService = remoteConfigService;
             _javaUpdateService = javaUpdateService;
             _javaUpdateService.JavaDownloadProgressChanged += OnJavaDownloadProgressUpdated;
+            _launcherUpdateService = launcherUpdateService;
+            _launcherUpdateService.DownloadProgressChanged += OnLauncherDownloadProgressUpdated;
 
             _settingsService = settingsService;
             Launcher = _settingsService.Launcher;
@@ -58,8 +61,18 @@ namespace Saradomin.ViewModel.Windows {
             Message.Subscribe<NotificationBoxStateChangedMessage>(this, NotificatationBoxStateChanged);
             Message.Subscribe<ClientLaunchRequestedMessage>(this, ClientLaunchRequested);
             Message.Subscribe<ClientLogMessage>(this, msg => AppendLog(msg.Text));
+            Message.Subscribe<CheckLauncherUpdateMessage>(this, async _ =>
+            {
+                // Manual check from Settings — always allow the prompt
+                Launcher.SkippedLauncherUpdateTag = "";
+                await CheckLauncherUpdateAsync(promptIfAvailable: true);
+            });
 
             _settingsService.Launcher.JavaExecutableLocation ??= CrossPlatform.LocateJavaExecutable();
+        }
+
+        private void OnLauncherDownloadProgressUpdated(object sender, float e) {
+            LaunchText = $"Updating launcher... {e * 100:F0}%";
         }
 
         public void ExitApplication() {
@@ -89,7 +102,63 @@ namespace Saradomin.ViewModel.Windows {
                 LoadAmiliousNewsAsync(),
                 Load2009ScapeNewsAsync()
             );
+            if (Launcher.CheckForLauncherUpdatesOnLaunch)
+                await CheckLauncherUpdateAsync(promptIfAvailable: true);
         }
+
+        private async Task CheckLauncherUpdateAsync(bool promptIfAvailable)
+        {
+            try
+            {
+                var info = await _launcherUpdateService.CheckForUpdateAsync();
+                if (!info.UpdateAvailable)
+                    return;
+
+                // User already said Later for this release tag
+                if (!string.IsNullOrEmpty(Launcher.SkippedLauncherUpdateTag)
+                    && string.Equals(Launcher.SkippedLauncherUpdateTag, info.TagName, StringComparison.OrdinalIgnoreCase))
+                    return;
+
+                if (!promptIfAvailable)
+                    return;
+
+                var tag = string.IsNullOrWhiteSpace(info.TagName) ? "latest" : info.TagName;
+                var updateNow = await ChoiceBox.ShowAsync(
+                    "Launcher update available",
+                    $"A newer launcher is available ({tag}).\n\nUpdate now or later?",
+                    "Update now",
+                    "Later");
+
+                if (updateNow)
+                {
+                    LaunchText = "Updating launcher...";
+                    CanLaunch = false;
+                    try
+                    {
+                        await _launcherUpdateService.DownloadAndApplyUpdateAsync(info);
+                        // process exits inside Apply on success
+                    }
+                    catch (Exception ex)
+                    {
+                        CanLaunch = true;
+                        LaunchText = "Play AmiliousScape!";
+                        NotificationBox.DisplayNotification("Launcher update failed", ex.Message);
+                    }
+                }
+                else
+                {
+                    Launcher.SkippedLauncherUpdateTag = info.TagName;
+                    _settingsService.SaveAll();
+                }
+            }
+            catch
+            {
+                // network / non-published build — ignore
+            }
+        }
+        
+        public Task CheckLauncherUpdateFromSettingsAsync()
+            => CheckLauncherUpdateAsync(promptIfAvailable: true);
 
         private async Task LoadAmiliousNewsAsync() {
             try

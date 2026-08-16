@@ -12,4 +12,5 @@ namespace Saradomin.Infrastructure
     
     public record ClientLogMessage(string Text) : Message;
     public record LogScrollRequestedMessage : Message;
+    public record CheckLauncherUpdateMessage : Message;
 }

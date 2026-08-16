@@ -27,7 +27,11 @@
 
                     <CheckBox Content="Allow multiple client instances to run"
                               IsChecked="{Binding Launcher.AllowMultiboxing, Mode=TwoWay}" />
-
+                    <CheckBox Content="Check for launcher updates on launch"
+                              IsChecked="{Binding Launcher.CheckForLauncherUpdatesOnLaunch, Mode=TwoWay}" />
+                    <Button Classes="OutsideNavigator"
+                            Content="Check launcher update"
+                            Command="{Binding CheckLauncherUpdate}" />
                     <Grid Margin="0,2,0,4"
                           ColumnDefinitions="*,Auto"
                           RowDefinitions="Auto,Auto">

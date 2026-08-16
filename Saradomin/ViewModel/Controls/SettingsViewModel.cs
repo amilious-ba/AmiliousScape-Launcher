@@ -18,6 +18,10 @@ namespace Saradomin.ViewModel.Controls
     public class SettingsViewModel : ViewModelBase
     {
         private readonly ISettingsService _settingsService;
+        
+        // Simpler: broadcast a message
+        public void CheckLauncherUpdate()
+            => new CheckLauncherUpdateMessage().Broadcast();
 
         public LauncherSettings Launcher => _settingsService.Launcher;
         public ClientSettings Client => _settingsService.Client;

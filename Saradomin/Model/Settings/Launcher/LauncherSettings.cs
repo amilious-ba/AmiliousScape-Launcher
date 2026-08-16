@@ -12,6 +12,11 @@ namespace Saradomin.Model.Settings.Launcher
         public bool CheckForClientUpdatesOnLaunch { get; set; } = true;
         public bool CheckForServerProfilesOnLaunch { get; set; } = true;
         public string JavaExecutableLocation { get; set; }
+        public bool CheckForLauncherUpdatesOnLaunch { get; set; } = true;
+        /// <summary>
+        /// Remote hash the user chose "Later" for; skip nagging until a different release appears.
+        /// </summary>
+        public string SkippedLauncherUpdateTag { get; set; } = "";
 
         protected override void OnSettingsModified(string propertyName)
         {
