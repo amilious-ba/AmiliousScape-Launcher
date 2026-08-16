@@ -28,9 +28,13 @@ namespace Saradomin.ViewModel.Windows
 
         private LauncherSettings Launcher { get; }
 
+        public int SelectedTabIndex { get; set; } = 0;
+        
         public string Title { get; set; } = "AmiliousScape Launcher";
         
         public string AmiliousNewsText { get; set; } = "Loading AmiliousScape news...";
+        
+        public string LaunchLog { get; set; } = "Client log will appear here when you press Play.\n";
         
         public bool CanLaunch { get; private set; } = true;
         public string LaunchText { get; private set; } = "Play AmiliousScape!";
@@ -57,6 +61,7 @@ namespace Saradomin.ViewModel.Windows
             Message.Subscribe<MainViewLoadedMessage>(this, MainViewLoaded);
             Message.Subscribe<NotificationBoxStateChangedMessage>(this, NotificatationBoxStateChanged);
             Message.Subscribe<ClientLaunchRequestedMessage>(this, ClientLaunchRequested);
+            Message.Subscribe<ClientLogMessage>(this, msg => AppendLog(msg.Text));
 
             _settingsService.Launcher.JavaExecutableLocation ??= CrossPlatform.LocateJavaExecutable();
         }
@@ -70,6 +75,15 @@ namespace Saradomin.ViewModel.Windows
         {
             if (CanLaunch)
                 await ExecuteLaunchSequence();
+        }
+        
+        private void AppendLog(string line)
+        {
+            var stamp = DateTime.Now.ToString("HH:mm:ss");
+            LaunchLog = LaunchLog + $"[{stamp}] {line}{Environment.NewLine}";
+
+            // Scroll AFTER log text has been updated
+            new LogScrollRequestedMessage().Broadcast();
         }
 
         private HtmlNode ConnectionErrorMessage(HtmlDocument doc, string msg)
@@ -190,23 +204,29 @@ private async Task Load2009ScapeNewsAsync()
             catch (Exception e)
             {
                 CanLaunch = true;
-                LaunchText = $"Failed to update 2009scape: {e.Message}";
+                LaunchText = $"Failed to update AmiliousScape: {e.Message}";
                 return;
             }
 
             try
             {
-                if (!IsJavaVersion11())
+                if (OperatingSystem.IsWindows())
                 {
-                    await _javaUpdateService.DownloadAndSetJava11(_settingsService);
+                    if (!IsJavaVersion("11"))
+                        await _javaUpdateService.DownloadAndSetJava11(_settingsService);
                 }
-            } catch (Exception e)
+                else
+                {
+                    if (!IsJavaVersion("25"))
+                        await _javaUpdateService.DownloadAndSetJava25(_settingsService);
+                }
+            }
+            catch (Exception e)
             {
                 CanLaunch = true;
-                LaunchText = $"Failed to download and set Java 11: {e.Message}";
+                LaunchText = $"Failed to download and set Java: {e.Message}";
                 return;
             }
-            
 
             if (!File.Exists(CrossPlatform.GetServerProfilePath(CrossPlatform.GetAmiliousScapeHome())) ||
                 _settingsService.Launcher.CheckForServerProfilesOnLaunch)
@@ -214,29 +234,32 @@ private async Task Load2009ScapeNewsAsync()
 
             try
             {
-                // Make sure config.json has the latest settings (fullscreen toggles, etc.)
-                _settingsService.SaveAll();
-                
+                LaunchLog = $"[{DateTime.Now:HH:mm:ss}] Starting launch...\n";
                 LaunchText = "Play! (already running)";
-                {
-                    // Will block this task until client process exits.
-                    var t = _launchService.LaunchClient();
 
-                    if (!_settingsService.Launcher.AllowMultiboxing || forceWait)
-                        await t;
-                }
+                // 1) switch to log tab
+                SelectedTabIndex = 3;
+
+                // 2) then tell the window to scroll
+                new LogTabActivatedMessage().Broadcast();
+
+                // 3) then start the client
+                var t = _launchService.LaunchClient();
+
+                if (!_settingsService.Launcher.AllowMultiboxing || forceWait)
+                    await t;
             }
             catch (Exception e)
             {
                 NotificationBox.DisplayNotification(
                     "Error",
-                    $"Unable to launch the 2009scape client.\n\n{e.Message}"
+                    $"Unable to launch the AmiliousScape client.\n\n{e.Message}"
                 );
             }
             finally
             {
                 CanLaunch = true;
-                LaunchText = "Play!";
+                LaunchText = "Play AmiliousScape!";
                 Message.Broadcast<ClientClosedMessage>();
             }
         }
@@ -326,12 +349,16 @@ private async Task Load2009ScapeNewsAsync()
             }
         }
 
-        private bool IsJavaVersion11()
+        private bool IsJavaVersion(string major)
         {
+            if (string.IsNullOrWhiteSpace(Launcher.JavaExecutableLocation) ||
+                !File.Exists(Launcher.JavaExecutableLocation))
+                return false;
+
             string javaVersionOutput = CrossPlatform.RunCommandAndGetOutput(
                 $"\"{Launcher.JavaExecutableLocation}\" -version"
             );
-            return javaVersionOutput.Contains("11");
+            return javaVersionOutput.Contains($"version \"{major}");
         }
         
         private void OnClientDownloadProgressUpdated(object sender, float e)

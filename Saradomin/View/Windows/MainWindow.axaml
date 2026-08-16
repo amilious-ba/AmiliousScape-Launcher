@@ -79,6 +79,8 @@
                 </Grid>
 
                 <TabControl Grid.Row="1"
+                            x:Name="MainTabs"
+                            SelectedIndex="{Binding SelectedTabIndex, Mode=TwoWay}"
                             Background="Transparent"
                             BorderBrush="{StaticResource DarkBorderBrush}"
                             Padding="0"
@@ -139,6 +141,25 @@
                                           VerticalScrollBarVisibility="Visible">
                                 <controls:SettingsView VerticalAlignment="Stretch" 
                                                        MaxHeight="500"/>
+                            </ScrollViewer>
+                        </Border>
+                    </TabItem>
+                    
+                    <TabItem Width="95"
+                             HorizontalContentAlignment="Center"
+                             Header="log">
+                        <Border Margin="4,4,4,0"
+                                Background="{StaticResource MediumBackgroundBrush}"
+                                BorderBrush="{StaticResource SemiLightMediumBorderBrush}"
+                                BorderThickness="1,1,1,0"
+                                CornerRadius="6,6,0,0">
+                            <ScrollViewer x:Name="LogScrollViewer"
+                                          HorizontalScrollBarVisibility="Disabled"
+                                          VerticalScrollBarVisibility="Auto">
+                                <SelectableTextBlock x:Name="LogTextBlock"
+                                                     Margin="6"
+                                                     Text="{Binding LaunchLog}"
+                                                     TextWrapping="Wrap" />
                             </ScrollViewer>
                         </Border>
                     </TabItem>

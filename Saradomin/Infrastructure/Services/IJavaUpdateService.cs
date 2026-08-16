@@ -8,5 +8,6 @@ namespace Saradomin.Infrastructure.Services
     {
         event EventHandler<Tuple<float, bool>> JavaDownloadProgressChanged;
         Task DownloadAndSetJava11(ISettingsService settingsService);
+        Task DownloadAndSetJava25(ISettingsService settingsService);
     }
 }

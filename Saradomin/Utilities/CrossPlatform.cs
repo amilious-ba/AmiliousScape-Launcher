@@ -327,6 +327,31 @@ namespace Saradomin.Utilities
                 throw new NotSupportedException("Your platform is not supported.");
             }
         }
+        
+        public static string GetJava25DownloadUrl()
+        {
+            string architecture = GetSystemArchitecture();
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                return "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4%2B7/OpenJDK25U-jre_x64_windows_hotspot_25.0.4_7.zip";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                return architecture == "x64"
+                    ? "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4%2B7/OpenJDK25U-jre_x64_linux_hotspot_25.0.4_7.tar.gz"
+                    : "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4%2B7/OpenJDK25U-jre_aarch64_linux_hotspot_25.0.4_7.tar.gz";
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                return architecture == "x64"
+                    ? "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4%2B7/OpenJDK25U-jre_x64_mac_hotspot_25.0.4_7.tar.gz"
+                    : "https://github.com/adoptium/temurin25-binaries/releases/download/jdk-25.0.4%2B7/OpenJDK25U-jre_aarch64_mac_hotspot_25.0.4_7.tar.gz";
+            }
+            else
+            {
+                throw new NotSupportedException("Your platform is not supported.");
+            }
+        }
 
         private static string GetSystemArchitecture()
         {

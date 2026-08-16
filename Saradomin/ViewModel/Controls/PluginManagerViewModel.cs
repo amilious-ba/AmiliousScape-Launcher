@@ -37,12 +37,11 @@ namespace Saradomin.ViewModel.Controls
         {
             PluginList.Clear();
 
-            var remotePlugins =await _pluginDownloadService.GetAllMetadata(
+            var remotePlugins = await _pluginDownloadService.GetAllMetadata(
+                _pluginManagementService.PluginCatalogPath,
                 _pluginManagementService.PluginRepositoryPath,
-                false,
-                false
-            );
-            
+                isUpdateCheck: false,
+                writePersistentUpdateFlag: false);
             PluginList = new ObservableCollection<PluginInfo>(remotePlugins.OrderByDescending(x => x.Installed));
         }
 
@@ -125,10 +124,10 @@ namespace Saradomin.ViewModel.Controls
                 UpdateStatusMessage($"Checking for updates...");
 
                 var updatablePlugins = await _pluginDownloadService.GetAllMetadata(
+                    _pluginManagementService.PluginCatalogPath,
                     _pluginManagementService.PluginRepositoryPath,
-                    true,
-                    true
-                );
+                    isUpdateCheck: true,
+                    writePersistentUpdateFlag: false);
 
                 foreach (var plugin in updatablePlugins)
                 {

@@ -123,6 +123,13 @@
             <CheckBox Content="Borderless fullscreen"
                       IsChecked="{Binding Client.BorderlessFullscreen, Mode=TwoWay}" />
         </StackPanel>
+        <Button Margin="0,8,0,0"
+                HorizontalAlignment="Stretch"
+                HorizontalContentAlignment="Center"
+                Classes="OutsideNavigator"
+                Command="{Binding OpenGameDirectory}"
+                Content="Open folder"
+                ToolTip.Tip="Open AmiliousScape game directory" />
     </StackPanel>
 </HeaderedContentControl>
 

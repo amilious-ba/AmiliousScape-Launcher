@@ -1,25 +1,23 @@
 using System;
 using System.Diagnostics;
 using System.IO;
-using System.IO.Compression;
-using System.Net.Http;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
 using Avalonia;
 using Glitonea.Extensions;
+using Glitonea.Mvvm.Messaging;
+using Saradomin.Infrastructure;
 using Saradomin.Utilities;
 
 namespace Saradomin.Infrastructure.Services
 {
     public class ClientLaunchService : IClientLaunchService
     {
-        private readonly ISettingsService _settingsService;  // Use the interface here
+        private readonly ISettingsService _settingsService;
         private readonly IClientUpdateService _clientUpdateService;
 
         public ClientLaunchService(
-            ISettingsService settingsService,  // Use the interface here
-            IClientUpdateService clientUpdateService
-        )
+            ISettingsService settingsService,
+            IClientUpdateService clientUpdateService)
         {
             _settingsService = settingsService;
             _clientUpdateService = clientUpdateService;
@@ -27,35 +25,76 @@ namespace Saradomin.Infrastructure.Services
 
         public async Task LaunchClient()
         {
-            // Original code to launch the game
-            var proc = new Process
-            {
-                StartInfo = new ProcessStartInfo(
-                    $"{_settingsService.Launcher.JavaExecutableLocation}"
-                )
-                {
-                    Arguments =
-                        $"-Dsun.java2d.uiScale={_settingsService.Client.UiScale} "
-                        + $"-DclientFps={_settingsService.Client.Fps} "
-                        + $"-DclientHomeOverride=\"{CrossPlatform.GetAmiliousScapeHome()}/\" "
-                        + $"-jar \"{_clientUpdateService.PreferredTargetFilePath}\"",
-                    WorkingDirectory = $"{CrossPlatform.GetAmiliousScapeHome()}",
-                    UseShellExecute = true,
-                    WindowStyle = ProcessWindowStyle.Hidden
-                }
-            };
+            var home = CrossPlatform.GetAmiliousScapeHome();
+            var jarPath = _clientUpdateService.PreferredTargetFilePath;
+            var javaPath = _settingsService.Launcher.JavaExecutableLocation;
 
-            proc.Start();
+            var uiScale = _settingsService.Client.UiScale;
+            var fps = _settingsService.Client.Fps;
 
+            var args =
+                $"-Dsun.java2d.uiScale={uiScale} " +
+                $"-DclientFps={fps} " +
+                $"-DclientHomeOverride=\"{home}/\" " +
+                $"-jar \"{jarPath}\"";
+
+            // Close launcher immediately: no log streaming
             if (_settingsService.Launcher.ExitAfterLaunchingClient)
             {
-                Application.Current.GetDesktopLifetime().Shutdown();
+                var procExit = new Process
+                {
+                    StartInfo = new ProcessStartInfo
+                    {
+                        FileName = javaPath,
+                        Arguments = args,
+                        WorkingDirectory = home,
+                        UseShellExecute = false
+                    }
+                };
+                procExit.Start();
+                Application.Current!.GetDesktopLifetime().Shutdown();
                 return;
             }
 
-            await proc.WaitForExitAsync();
-        }
+            new ClientLogMessage("Launching...").Broadcast();
+            new ClientLogMessage($"Java: {javaPath}").Broadcast();
+            new ClientLogMessage($"Args: {args}").Broadcast();
+            new ClientLogMessage($"WorkDir: {home}").Broadcast();
+            new ClientLogMessage($"Jar exists: {File.Exists(jarPath)}").Broadcast();
+            new ClientLogMessage("----- client output -----").Broadcast();
 
-        
+            var proc = new Process
+            {
+                StartInfo = new ProcessStartInfo
+                {
+                    FileName = javaPath,
+                    Arguments = args,
+                    WorkingDirectory = home,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true
+                }
+            };
+
+            proc.OutputDataReceived += (_, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                    new ClientLogMessage(e.Data).Broadcast();
+            };
+
+            proc.ErrorDataReceived += (_, e) =>
+            {
+                if (!string.IsNullOrEmpty(e.Data))
+                    new ClientLogMessage("[ERR] " + e.Data).Broadcast();
+            };
+
+            proc.Start();
+            proc.BeginOutputReadLine();
+            proc.BeginErrorReadLine();
+
+            await proc.WaitForExitAsync();
+            new ClientLogMessage($"----- exit code {proc.ExitCode} -----").Broadcast();
+        }
     }
 }

@@ -8,6 +8,7 @@ namespace Saradomin.Infrastructure.Services
     public interface IPluginManagementService : IService
     {
         string PluginRepositoryPath { get; set; }
+        string PluginCatalogPath { get; set; }
         
         Task<List<string>> EnumerateInstalledPlugins();
         Task<bool> IsPluginInstalled(string pluginName);

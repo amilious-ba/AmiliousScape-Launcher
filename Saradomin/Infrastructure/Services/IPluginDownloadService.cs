@@ -9,6 +9,10 @@ namespace Saradomin.Infrastructure.Services
     {
         Task<List<string>> FetchFileListForPlugin(string pluginName);
         Task DownloadPluginFiles(string pluginName, string pluginRepositoryPath);
-        Task<List<PluginInfo>> GetAllMetadata (string pluginRepositoryPath, bool isUpdateCheck, bool writePersistentUpdateFlag);
+        Task<List<PluginInfo>> GetAllMetadata(
+            string pluginCatalogPath,
+            string pluginRepositoryPath,
+            bool isUpdateCheck,
+            bool writePersistentUpdateFlag);
     }
 }

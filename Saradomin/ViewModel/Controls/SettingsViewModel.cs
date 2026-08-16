@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Reflection;
 using System.Threading.Tasks;
 using Avalonia;
@@ -46,6 +47,13 @@ namespace Saradomin.ViewModel.Controls
         public void LaunchProjectWebsite()
             => CrossPlatform.LaunchURL("https://github.com/amilious-ba/RT4-Client");  // or your launcher repo later
 
+        public void OpenGameDirectory()
+        {
+            var path = CrossPlatform.GetAmiliousScapeHome();
+            Directory.CreateDirectory(path);
+            CrossPlatform.OpenFolder(path);
+        }
+        
         public async Task BrowseForJavaExecutable()
         {
             var window = Application.Current!.GetMainWindow();

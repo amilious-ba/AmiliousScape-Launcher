@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Net.Http;
@@ -9,7 +8,6 @@ using System.Threading.Tasks;
 using GitLabApiClient;
 using GitLabApiClient.Models.Trees.Responses;
 using Saradomin.Model;
-using Saradomin.View.Windows;
 
 namespace Saradomin.Infrastructure.Services
 {
@@ -30,26 +28,27 @@ namespace Saradomin.Infrastructure.Services
         private async Task PerformInitialQuery()
         {
             _cachedQuery = await _gitLabClient.Trees.GetAsync($"{GroupName}/{ProjectName}", o =>
-                {
-                    o.Recursive = true;
-                    o.Reference = BranchName;
-                }
-            );
+            {
+                o.Recursive = true;
+                o.Reference = BranchName;
+            });
         }
 
         public async Task<List<string>> FetchPluginMetadataPaths()
         {
-            if (_cachedQuery == null) await PerformInitialQuery();
+            if (_cachedQuery == null)
+                await PerformInitialQuery();
 
             return _cachedQuery
                 .Where(x => x.Type == "blob" && x.Path.Contains("properties"))
                 .Select(x => x.Path)
                 .ToList();
         }
-        
+
         public async Task<List<string>> FetchFileListForPlugin(string pluginName)
         {
-            if (_cachedQuery == null) await PerformInitialQuery();
+            if (_cachedQuery == null)
+                await PerformInitialQuery();
 
             return _cachedQuery
                 .Where(x => x.Path.Contains(pluginName) && x.Type == "blob")
@@ -57,6 +56,7 @@ namespace Saradomin.Infrastructure.Services
                 .ToList();
         }
 
+        // Installs into LIVE plugins folder only (client-readable)
         public async Task DownloadPluginFiles(string pluginName, string pluginRepositoryPath)
         {
             var directoryPath = Path.Combine(pluginRepositoryPath, pluginName);
@@ -67,11 +67,9 @@ namespace Saradomin.Infrastructure.Services
             else
             {
                 foreach (var file in Directory.EnumerateFiles(directoryPath))
-                {
                     File.Delete(file);
-                }
             }
-            
+
             var pluginFiles = await FetchFileListForPlugin(pluginName);
             foreach (var filePath in pluginFiles)
             {
@@ -79,9 +77,9 @@ namespace Saradomin.Infrastructure.Services
 
                 var downloadDirectoryPath = Path.Combine(pluginRepositoryPath, Path.GetDirectoryName(filePath)!);
                 var downloadFilePath = Path.Combine(pluginRepositoryPath, filePath);
-                
+
                 Directory.CreateDirectory(downloadDirectoryPath);
-                
+
                 await File.WriteAllBytesAsync(
                     downloadFilePath,
                     Convert.FromBase64String(file.Content)
@@ -89,7 +87,12 @@ namespace Saradomin.Infrastructure.Services
             }
         }
 
-        public async Task <List<PluginInfo>> GetAllMetadata (string pluginRepositoryPath, bool isUpdateCheck, bool writePersistentUpdateFlag)
+        // Metadata uses catalog path; Installed checks live repository path
+        public async Task<List<PluginInfo>> GetAllMetadata(
+            string pluginCatalogPath,
+            string pluginRepositoryPath,
+            bool isUpdateCheck,
+            bool writePersistentUpdateFlag)
         {
             try
             {
@@ -98,50 +101,66 @@ namespace Saradomin.Infrastructure.Services
 
                 foreach (var path in metadataPaths)
                 {
-                    infos.Add(await ProcessMetadataPath(path, pluginRepositoryPath, isUpdateCheck,
+                    infos.Add(await ProcessMetadataPath(
+                        path,
+                        pluginCatalogPath,
+                        pluginRepositoryPath,
+                        isUpdateCheck,
                         writePersistentUpdateFlag));
                 }
-                
-                return isUpdateCheck ? infos.Where(x => x.UpdateAvailable).ToList() : infos;
+
+                return isUpdateCheck
+                    ? infos.Where(x => x.UpdateAvailable).ToList()
+                    : infos;
             }
-            catch (HttpRequestException e)
+            catch (HttpRequestException)
             {
                 return new List<PluginInfo>();
             }
         }
 
-        private async Task<PluginInfo> ProcessMetadataPath(string path, string pluginRepositoryPath, bool isUpdateCheck, bool writePersistentUpdateFlag)
+        private async Task<PluginInfo> ProcessMetadataPath(
+            string path,
+            string pluginCatalogPath,
+            string pluginRepositoryPath,
+            bool isUpdateCheck,
+            bool writePersistentUpdateFlag)
         {
-            var pluginName = path.Split("/")[0];
-            var pluginFolder = Path.Combine(pluginRepositoryPath, pluginName);
+            var pluginName = path.Split('/')[0];
 
-            if (!Directory.Exists(pluginFolder))
-                Directory.CreateDirectory(pluginFolder);
-                
-            var filePath = Path.Combine(pluginFolder, "plugin.properties");
+            // Catalog only — never create folders under live plugins/ here
+            var catalogFolder = Path.Combine(pluginCatalogPath, pluginName);
+            Directory.CreateDirectory(catalogFolder);
+
+            var filePath = Path.Combine(catalogFolder, "plugin.properties");
             var fileContent = "";
             var updateContent = "";
-                
+
             if (!File.Exists(filePath) || isUpdateCheck)
             {
                 var file = await _gitLabClient.Files.GetAsync($"{GroupName}/{ProjectName}", path, BranchName);
+
                 if (isUpdateCheck && File.Exists(filePath))
                 {
                     fileContent = await File.ReadAllTextAsync(filePath);
                     updateContent = file.ContentDecoded;
-                } 
+                }
                 else if (isUpdateCheck)
+                {
                     fileContent = updateContent = file.ContentDecoded;
+                }
                 else
+                {
                     fileContent = file.ContentDecoded;
-                    
+                }
+
                 if (!isUpdateCheck)
                 {
                     await File.WriteAllBytesAsync(
                         filePath,
                         Convert.FromBase64String(file.Content)
                     );
-                } 
+                }
             }
             else if (File.Exists(filePath))
             {
@@ -149,15 +168,21 @@ namespace Saradomin.Infrastructure.Services
             }
 
             var info = ParseInfo(pluginName, fileContent);
-            var updatedInfo = !string.IsNullOrEmpty(updateContent) ? ParseInfo(pluginName, updateContent) : info;
+            var updatedInfo = !string.IsNullOrEmpty(updateContent)
+                ? ParseInfo(pluginName, updateContent)
+                : info;
 
             if (isUpdateCheck && updatedInfo.Version != info.Version)
             {
                 info.UpdateAvailable = true;
-                if (writePersistentUpdateFlag) WritePluginInfoToFile(info, pluginFolder);
+                if (writePersistentUpdateFlag)
+                    WritePluginInfoToFile(info, catalogFolder);
             }
-                
-            info.Installed = File.Exists(Path.Combine(pluginFolder, "plugin.class"));
+
+            // Live install check
+            info.Installed = File.Exists(
+                Path.Combine(pluginRepositoryPath, pluginName, "plugin.class"));
+
             return info;
         }
 
@@ -166,16 +191,16 @@ namespace Saradomin.Infrastructure.Services
             var lines = new Regex("\r\n|\r|\n").Split(text);
             var parsedData = new Dictionary<string, string>();
             var lastKey = "";
-            
-            foreach (var lineInfo in lines.Select(t => t.Split("=")))
+
+            foreach (var lineInfo in lines.Select(t => t.Split('=')))
             {
                 if (parsedData.ContainsKey(lineInfo[0])) continue;
                 if (lineInfo.Length > 1)
                 {
-                    parsedData.Add (lineInfo[0], lineInfo[1].Trim('\'').Trim());
+                    parsedData.Add(lineInfo[0], lineInfo[1].Trim('\'').Trim());
                     lastKey = lineInfo[0];
                 }
-                else
+                else if (!string.IsNullOrEmpty(lastKey))
                 {
                     parsedData[lastKey] += lineInfo[0];
                 }
@@ -190,7 +215,7 @@ namespace Saradomin.Infrastructure.Services
                         info.Author = value;
                         break;
                     case "description":
-                        info.Description = value.Replace("\\", System.Environment.NewLine);
+                        info.Description = value.Replace("\\", Environment.NewLine);
                         break;
                     case "version":
                         info.Version = value;
@@ -203,17 +228,18 @@ namespace Saradomin.Infrastructure.Services
 
             return info;
         }
-        
+
         public static void WritePluginInfoToFile(PluginInfo info, string pluginFolder)
         {
-            var content = $"NAME={info.Name}\r\n" +
-                          $"AUTHOR={info.Author}\r\n" +
-                          $"DESCRIPTION={info.Description.Replace(System.Environment.NewLine, "\\\r\n")}\r\n" +
-                          $"VERSION={info.Version}";
+            var content =
+                $"NAME={info.Name}\r\n" +
+                $"AUTHOR={info.Author}\r\n" +
+                $"DESCRIPTION={info.Description.Replace(Environment.NewLine, "\\\r\n")}\r\n" +
+                $"VERSION={info.Version}";
 
             if (info.UpdateAvailable)
                 content += "\r\nUPDATEAVAILABLE=1";
-            
+
             File.WriteAllText(Path.Combine(pluginFolder, "plugin.properties"), content);
         }
     }

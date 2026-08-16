@@ -10,40 +10,56 @@ namespace Saradomin.Infrastructure.Services
 {
     public class PluginManagementService : IPluginManagementService
     {
+        // Client-visible installs only (must contain plugin.class)
         public string PluginRepositoryPath { get; set; }
+
+        // Metadata only (plugin.properties) — client must NOT read this
+        public string PluginCatalogPath { get; set; }
 
         public PluginManagementService(ISettingsService settings)
         {
-            PluginRepositoryPath = Path.Combine(CrossPlatform.GetAmiliousScapeHome(), "plugins");
+            var home = CrossPlatform.GetAmiliousScapeHome();
+
+            PluginRepositoryPath = Path.Combine(home, "plugins");
+            PluginCatalogPath = Path.Combine(home, "plugins_catalog");
+
+            Directory.CreateDirectory(PluginRepositoryPath);
+            Directory.CreateDirectory(PluginCatalogPath);
         }
 
         public Task<List<string>> EnumerateInstalledPlugins()
         {
             EnsurePluginRepositoryPathSane();
 
-            return Task.FromResult(Directory
+            // Only count plugins that are fully installed
+            var installed = Directory
                 .GetDirectories(PluginRepositoryPath, "*", SearchOption.TopDirectoryOnly)
-                .Select(x => Path.GetFileName(x)).ToList());
+                .Where(dir => File.Exists(Path.Combine(dir, "plugin.class")))
+                .Select(Path.GetFileName)
+                .ToList();
+
+            return Task.FromResult(installed);
         }
 
         public async Task<bool> IsPluginInstalled(string pluginName)
         {
             EnsurePluginRepositoryPathSane();
 
-            return (await EnumerateInstalledPlugins())
-                .Contains(pluginName);
+            var pluginDir = GetPluginDirectoryPath(pluginName);
+            return File.Exists(Path.Combine(pluginDir, "plugin.class"));
         }
 
         public Task UninstallPlugin(string pluginName)
         {
             EnsurePluginRepositoryPathSane();
-            var pluginPath = GetPluginDirectoryPath(pluginName);
 
+            var pluginPath = GetPluginDirectoryPath(pluginName);
             if (Directory.Exists(pluginPath))
             {
                 Directory.Delete(pluginPath, true);
             }
 
+            // Optional: leave catalog metadata alone so it still shows in the UI as not installed
             return Task.CompletedTask;
         }
 
@@ -63,6 +79,16 @@ namespace Saradomin.Infrastructure.Services
             }
 
             Directory.CreateDirectory(PluginRepositoryPath);
+        }
+
+        public void EnsureCatalogPathSane()
+        {
+            if (string.IsNullOrWhiteSpace(PluginCatalogPath))
+            {
+                throw new InvalidOperationException("Plugin catalog path has not been set.");
+            }
+
+            Directory.CreateDirectory(PluginCatalogPath);
         }
     }
 }
