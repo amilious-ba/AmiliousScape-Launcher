@@ -39,13 +39,13 @@ namespace Saradomin.ViewModel.Controls {
         }
         
         public void LaunchScapeWebsite()
-            => CrossPlatform.LaunchURL("https://amilious.xyz");   // change if you want
+            => CrossPlatform.LaunchUrl("https://amilious.xyz");   // change if you want
 
         public void OpenPluginTutorial()
-            => CrossPlatform.LaunchURL("https://gitlab.com/2009scape/tools/client-plugins");
+            => CrossPlatform.LaunchUrl("https://gitlab.com/2009scape/tools/client-plugins");
 
         public void LaunchProjectWebsite()
-            => CrossPlatform.LaunchURL("https://github.com/amilious-ba/RT4-Client");  // or your launcher repo later
+            => CrossPlatform.LaunchUrl("https://github.com/amilious-ba/RT4-Client");  // or your launcher repo later
 
         public void OpenGameDirectory() {
             var path = CrossPlatform.GetAmiliousScapeHome();

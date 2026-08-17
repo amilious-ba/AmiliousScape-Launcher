@@ -296,7 +296,7 @@ namespace Saradomin.ViewModel.Windows {
                 _ => throw new ArgumentException($"{parameter} is not a valid page parameter.")
             };
 
-            CrossPlatform.LaunchURL(url);
+            CrossPlatform.LaunchUrl(url);
         }
 
         [DependsOn(nameof(CanLaunch))]

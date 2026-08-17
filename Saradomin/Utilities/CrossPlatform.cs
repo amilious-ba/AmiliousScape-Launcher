@@ -1,16 +1,16 @@
 using System;
-using System.Diagnostics;
+using Mono.Unix;
 using System.IO;
-using System.Runtime.InteropServices;
 using System.Text;
 using Microsoft.Win32;
-using Mono.Unix;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
-namespace Saradomin.Utilities
-{
+namespace Saradomin.Utilities {
+    
     public static class CrossPlatform {
         
-        public static void LaunchURL(string url) {
+        public static void LaunchUrl(string url) {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 url = url.Replace("&", "^&");
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
@@ -29,31 +29,6 @@ namespace Saradomin.Utilities
             }else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
                 Process.Start("open", path);
             }
-        }
-
-        public static bool IsJavaExecutableValid(string location) {
-            try {
-                if (!File.Exists(location)) return false; 
-
-                using (var fileStream = File.OpenRead(location)) {
-                    var bytes = new byte[4];
-                    fileStream.Read(bytes, 0, 4);
-
-                    if (bytes[0] == 0x7F && bytes[1] == 0x45 && bytes[2] == 0x4C && bytes[3] == 0x46) {
-                        return RuntimeInformation.IsOSPlatform(OSPlatform.Linux);
-                    }
-
-                    if (bytes[0] == 'M' && bytes[1] == 'Z') {
-                        return RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-                    }
-
-                    if ((bytes[0] == 0xCF && bytes[1] == 0xFA) || (bytes[0] == 0xCA && bytes[1] == 0xFE)) {
-                        return RuntimeInformation.IsOSPlatform(OSPlatform.OSX);
-                    }
-
-                }
-            }catch { /* Ignore */ }
-            return false;
         }
 
         public static string LocateJavaExecutable() {
