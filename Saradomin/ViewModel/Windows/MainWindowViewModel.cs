@@ -319,11 +319,11 @@ namespace Saradomin.ViewModel.Windows {
                 return;
             }
             try {
-                if (OperatingSystem.IsWindows()) {
-                    if (!IsJavaVersion("11")) await _javaUpdateService.DownloadAndSetJava11(_settingsService);
-                }else {
-                    if (!IsJavaVersion("25")) await _javaUpdateService.DownloadAndSetJava25(_settingsService);
-                }
+                var distribution = OperatingSystem.IsWindows() ? 
+                    JavaDistribution.Temurin11 : JavaDistribution.Temurin25;
+
+                if (!IsJavaVersion(distribution.MajorVersion.ToString()))
+                    await _javaUpdateService.DownloadAndSetJava(_settingsService, distribution);
             }catch (Exception e) {
                 CanLaunch = true;
                 LaunchText = $"Failed to download and set Java: {e.Message}";

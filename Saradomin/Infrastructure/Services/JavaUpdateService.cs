@@ -1,27 +1,31 @@
 using System;
 using System.IO;
-using System.Net.Http;
-using Saradomin.Utilities;
 using System.IO.Compression;
-using System.Threading.Tasks;
+using System.Net.Http;
 using System.Runtime.InteropServices;
+using System.Threading.Tasks;
+using Saradomin.Utilities;
 
 namespace Saradomin.Infrastructure.Services
 {
-    public class JavaUpdateService : IJavaUpdateService {
-        
+    public class JavaUpdateService : IJavaUpdateService
+    {
         public event EventHandler<JavaUpdateInfo> JavaDownloadProgressChanged;
 
-        
-        public async Task DownloadAndSetJava25(ISettingsService settingsService) {
-            string downloadUrl = CrossPlatform.GetJava25DownloadUrl();
+        public async Task DownloadAndSetJava(ISettingsService settingsService, JavaDistribution distribution) {
+            var downloadUrl = distribution.GetDownloadUrl();
+            var home = CrossPlatform.GetAmiliousScapeHome();
+            var extension = downloadUrl.EndsWith(".tar.gz", StringComparison.OrdinalIgnoreCase)
+                ? ".tar.gz" : Path.GetExtension(downloadUrl);
 
-            string downloadPath = Path.Combine(CrossPlatform.GetAmiliousScapeHome(),
-            "jre25" + Path.GetExtension(downloadUrl));
-            string extractedPath = Path.Combine(CrossPlatform.GetAmiliousScapeHome(), "jre25");
+            var downloadPath = Path.Combine(home, distribution.FolderName + extension);
+            var extractedPath = distribution.GetInstallDirectory();
+            var major = distribution.MajorVersion;
 
-            using (HttpClient httpClient = new HttpClient()) {
+            using (var httpClient = new HttpClient()) {
                 var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
+                response.EnsureSuccessStatusCode();
+
                 var contentLength = response.Content.Headers.ContentLength ?? 40 * 1024 * 1024L;
                 var totalRead = 0L;
                 var buffer = new byte[8192];
@@ -31,112 +35,47 @@ namespace Saradomin.Infrastructure.Services
                     int bytesRead;
                     do {
                         bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
+                        if (bytesRead <= 0) break;
+
                         totalRead += bytesRead;
                         await fileStream.WriteAsync(buffer, 0, bytesRead);
 
                         var progress = (float)totalRead / contentLength;
-                        JavaDownloadProgressChanged?.Invoke(this, 
-                            new JavaUpdateInfo(25,downloadUrl,progress,false));
+                        JavaDownloadProgressChanged?.Invoke(
+                            this, new JavaUpdateInfo(major, downloadUrl, progress, false));
                     } while (bytesRead > 0);
                 }
             }
 
-            JavaDownloadProgressChanged?.Invoke(this, 
-                new JavaUpdateInfo(25, downloadUrl, 1f, false));
+            // Signal extract phase
+            JavaDownloadProgressChanged?.Invoke(
+                this, new JavaUpdateInfo(major, downloadUrl, 1f, false));
 
-            if (Directory.Exists(extractedPath)) Directory.Delete(extractedPath, true);
+            if (Directory.Exists(extractedPath))
+                Directory.Delete(extractedPath, true);
 
-            if (Path.GetExtension(downloadUrl) == ".zip")
-            {
-                string tempDir = Path.Combine(CrossPlatform.GetAmiliousScapeHome(), "jre25_temp");
-                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
+            if (extension.Equals(".zip", StringComparison.OrdinalIgnoreCase)) {
+                var tempDir = Path.Combine(home, distribution.FolderName + "_temp");
+                if (Directory.Exists(tempDir))
+                    Directory.Delete(tempDir, true);
+
                 await Task.Run(() => ZipFile.ExtractToDirectory(downloadPath, tempDir));
                 Directory.Move(Directory.GetDirectories(tempDir)[0], extractedPath);
                 Directory.Delete(tempDir, true);
-            } else if (Path.GetExtension(downloadUrl) == ".gz" || Path.GetExtension(downloadUrl) == ".tar.gz") {
+            }else {
+                // .tar.gz (Path.GetExtension alone is ".gz")
                 Directory.CreateDirectory(extractedPath);
                 await Task.Run(() => CrossPlatform.RunCommandAndGetOutput(
-                    $"tar xf {downloadPath} -C {extractedPath} --strip-components 1"));
+                    $"tar xf \"{downloadPath}\" -C \"{extractedPath}\" --strip-components 1"));
             }
 
             File.Delete(downloadPath);
 
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                settingsService.Launcher.JavaExecutableLocation = Path.Combine(
-            extractedPath, "Contents", "Home", "bin", "java");
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                settingsService.Launcher.JavaExecutableLocation = Path.Combine(extractedPath, "bin", "java.exe");
-            } else {
-                settingsService.Launcher.JavaExecutableLocation = Path.Combine(extractedPath, "bin", "java");
-            }
-
+            settingsService.Launcher.JavaExecutableLocation = distribution.GetJavaExecutablePath();
             settingsService.SaveAll();
-            JavaDownloadProgressChanged?.Invoke(this, 
-                new JavaUpdateInfo(25,downloadUrl,1f,true));
-        }
-        
-        public async Task DownloadAndSetJava11(ISettingsService settingsService) {
-            
-            string downloadUrl = CrossPlatform.GetJava11DownloadUrl();
-            string downloadPath = Path.Combine(CrossPlatform.GetAmiliousScapeHome(),
-                "jre11" + Path.GetExtension(downloadUrl));
-            string extractedPath = Path.Combine(CrossPlatform.GetAmiliousScapeHome(), "jre11");
 
-            using (HttpClient httpClient = new HttpClient()) {
-                var response = await httpClient.GetAsync(downloadUrl, HttpCompletionOption.ResponseHeadersRead);
-                var contentLength = response.Content.Headers.ContentLength ?? 40 * 1024 * 1024L;
-                var totalRead = 0L;
-                var buffer = new byte[8192];
-
-                // Create a FileStream to write the downloaded bytes to
-                await using (var fileStream = new FileStream(downloadPath, FileMode.Create, FileAccess.Write, 
-                                 FileShare.None)) {
-                    await using (var stream = await response.Content.ReadAsStreamAsync()) {
-                        int bytesRead;
-                        do {
-                            bytesRead = await stream.ReadAsync(buffer, 0, buffer.Length);
-                            totalRead += bytesRead;
-
-                            // Write the bytes to the FileStream
-                            await fileStream.WriteAsync(buffer, 0, bytesRead);
-
-                            var progress = (float)totalRead / contentLength;
-                            JavaDownloadProgressChanged?.Invoke(this, new JavaUpdateInfo(11,downloadUrl,progress,false));
-                        } while (bytesRead > 0);
-                    }
-                }
-            }
-            
-            JavaDownloadProgressChanged?.Invoke(this, new JavaUpdateInfo(11,downloadUrl,1f,false));
-            
-            if (Directory.Exists(extractedPath)) Directory.Delete(extractedPath, true);
-            
-            if (Path.GetExtension(downloadUrl) == ".zip") {
-                // Don't use /tmp because Directory.Move doesn't work cross-partition
-                string tempDir = Path.Combine(CrossPlatform.GetAmiliousScapeHome(), "jre11_temp");
-                if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true);
-                await Task.Run(() => ZipFile.ExtractToDirectory(downloadPath, tempDir));
-                Directory.Move(Directory.GetDirectories(tempDir)[0], extractedPath);
-                Directory.Delete(tempDir, true);
-            }else if (Path.GetExtension(downloadUrl) == ".gz" || Path.GetExtension(downloadUrl) == ".tar.gz") {
-                Directory.CreateDirectory(extractedPath);
-                await Task.Run(() => CrossPlatform.RunCommandAndGetOutput($"tar xf {downloadPath} -C {extractedPath} --strip-components 1"));
-            }
-            
-            File.Delete(downloadPath);
-
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX)) {
-                settingsService.Launcher.JavaExecutableLocation = Path.Combine(
-                    extractedPath, "Contents", "Home", "bin", "java");
-            } else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
-                settingsService.Launcher.JavaExecutableLocation = Path.Combine(
-                    extractedPath, "bin", "java.exe");
-            } else {
-                settingsService.Launcher.JavaExecutableLocation = Path.Combine(
-                    extractedPath, "bin", "java");
-            }
-            settingsService.SaveAll();
-            JavaDownloadProgressChanged?.Invoke(this, new JavaUpdateInfo(11,downloadUrl,1f,true));
+            JavaDownloadProgressChanged?.Invoke(
+                this, new JavaUpdateInfo(major, downloadUrl, 1f, true));
         }
     }
 }
