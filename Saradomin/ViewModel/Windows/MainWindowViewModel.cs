@@ -1,24 +1,24 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Collections.Generic;
 using Glitonea.Mvvm;
+using Avalonia.Media;
 using System.Net.Http;
-using System.Reflection;
 using HtmlAgilityPack;
 using System.Threading;
+using System.Reflection;
 using Avalonia.Metadata;
 using Saradomin.Utilities;
 using Saradomin.View.Windows;
 using System.Threading.Tasks;
 using Glitonea.Mvvm.Messaging;
 using Saradomin.Infrastructure;
+using Version = System.Version;
+using static System.Environment;
+using System.Collections.Generic;
 using Avalonia.Controls.Documents;
-using Avalonia.Media;
 using Saradomin.Infrastructure.Services;
 using Saradomin.Model.Settings.Launcher;
-using static System.Environment;
-using Version = System.Version;
 
 namespace Saradomin.ViewModel.Windows {
     
@@ -37,7 +37,6 @@ namespace Saradomin.ViewModel.Windows {
         
         public string Title { get; set; } = "AmiliousScape Launcher";
         
-        //public string AmiliousNewsText { get; set; } = "Loading AmiliousScape news...";
         public InlineCollection AmiliousNewsInlines { get; set; } = new();
         
         public string LaunchLog { get; set; } = "Client log will appear here when you press Play.\n";
@@ -64,11 +63,10 @@ namespace Saradomin.ViewModel.Windows {
             Launcher = _settingsService.Launcher;
 
             Message.Subscribe<MainViewLoadedMessage>(this, MainViewLoaded);
-            Message.Subscribe<NotificationBoxStateChangedMessage>(this, NotificatationBoxStateChanged);
+            Message.Subscribe<NotificationBoxStateChangedMessage>(this, NotificationBoxStateChanged);
             Message.Subscribe<ClientLaunchRequestedMessage>(this, ClientLaunchRequested);
             Message.Subscribe<ClientLogMessage>(this, msg => AppendLog(msg.Text));
-            Message.Subscribe<CheckLauncherUpdateMessage>(this, async _ =>
-            {
+            Message.Subscribe<CheckLauncherUpdateMessage>(this, async _ => {
                 // Manual check from Settings — always allow the prompt
                 Launcher.SkippedLauncherUpdateTag = "";
                 await CheckLauncherUpdateAsync(promptIfAvailable: true);
@@ -77,15 +75,13 @@ namespace Saradomin.ViewModel.Windows {
             _settingsService.Launcher.JavaExecutableLocation ??= CrossPlatform.LocateJavaExecutable();
         }
         
-        private static Version GetLocalVersion()
-        {
+        private static Version GetLocalVersion() {
             var v = Assembly.GetExecutingAssembly().GetName().Version
                     ?? new Version(0, 0, 0, 0);
             return new Version(v.Major, v.Minor, Math.Max(v.Build, 0));
         }
         
-        private void SetTitle(Version local, Version remoteOrNull)
-        {
+        private void SetTitle(Version local, Version remoteOrNull) {
             var localText = FormatVersion(local);
 
             if (remoteOrNull != null && local > remoteOrNull)
@@ -94,16 +90,13 @@ namespace Saradomin.ViewModel.Windows {
                 Title = $"AmiliousScape Launcher - v{localText}";
         }
 
-        private static string FormatVersion(Version v)
-            => $"{v.Major}.{v.Minor}.{v.Build}";
+        private static string FormatVersion(Version v) => $"{v.Major}.{v.Minor}.{v.Build}";
 
         private void OnLauncherDownloadProgressUpdated(object sender, float e) {
             LaunchText = $"Updating launcher... {e * 100:F0}%";
         }
 
-        public void ExitApplication() {
-            Exit(0);
-        }
+        public void ExitApplication() { Exit(0); }
 
         public async void ClientLaunchRequested(ClientLaunchRequestedMessage _) {
             if (CanLaunch) await ExecuteLaunchSequence();
@@ -134,215 +127,168 @@ namespace Saradomin.ViewModel.Windows {
                 await CheckLauncherUpdateAsync(promptIfAvailable: true);
         }
 
-        private async Task CheckLauncherUpdateAsync(bool promptIfAvailable)
-        {
-            try
-            {
+        private async Task CheckLauncherUpdateAsync(bool promptIfAvailable) {
+            try {
                 var info = await _launcherUpdateService.CheckForUpdateAsync();
-
                 // Update window title from local vs GitHub tag
                 var local = GetLocalVersion();
                 Version remote = null;
-                if (!string.IsNullOrWhiteSpace(info.TagName))
-                {
+                if (!string.IsNullOrWhiteSpace(info.TagName)) {
                     var cleaned = info.TagName.Trim().TrimStart('v', 'V');
                     if (Version.TryParse(cleaned, out var parsed))
                         remote = new Version(parsed.Major, parsed.Minor, Math.Max(parsed.Build, 0));
                 }
                 SetTitle(local, remote);
 
-                if (!info.UpdateAvailable)
-                    return;
+                if (!info.UpdateAvailable) return;
 
                 // User already said Later for this release tag
                 if (!string.IsNullOrEmpty(Launcher.SkippedLauncherUpdateTag)
                     && string.Equals(Launcher.SkippedLauncherUpdateTag, info.TagName, StringComparison.OrdinalIgnoreCase))
                     return;
 
-                if (!promptIfAvailable)
-                    return;
+                if (!promptIfAvailable) return;
 
                 var tag = string.IsNullOrWhiteSpace(info.TagName) ? "latest" : info.TagName;
-                var updateNow = await ChoiceBox.ShowAsync(
-                    "Launcher update available",
-                    $"A newer launcher is available ({tag}).\n\nUpdate now or later?",
-                    "Update now",
-                    "Later");
+                var updateNow = await ChoiceBox.ShowAsync("Launcher update available", 
+                    $"A newer launcher is available ({tag}).\n\nUpdate now or later?");
 
-                if (updateNow)
-                {
+                if (updateNow) {
                     LaunchText = "Updating launcher...";
                     CanLaunch = false;
-                    try
-                    {
+                    try {
                         await _launcherUpdateService.DownloadAndApplyUpdateAsync(info);
                         // process exits inside Apply on success
-                    }
-                    catch (Exception ex)
-                    {
+                    }catch (Exception ex) {
                         CanLaunch = true;
                         LaunchText = "Play AmiliousScape!";
                         NotificationBox.DisplayNotification("Launcher update failed", ex.Message);
                     }
-                }
-                else
-                {
+                }else {
                     Launcher.SkippedLauncherUpdateTag = info.TagName;
                     _settingsService.SaveAll();
                 }
-            }
-            catch
-            {
+            }catch {
                 // network / non-published build — ignore
                 SetTitle(GetLocalVersion(), null);
             }
         }
         
-        public Task CheckLauncherUpdateFromSettingsAsync()
-            => CheckLauncherUpdateAsync(promptIfAvailable: true);
+        public Task CheckLauncherUpdateFromSettingsAsync() => CheckLauncherUpdateAsync(promptIfAvailable: true);
 
-        private async Task LoadAmiliousNewsAsync()
-{
-    try
-    {
-        using var http = new HttpClient();
-        http.DefaultRequestHeaders.UserAgent.ParseAdd("AmiliousScape-Launcher");
+        private async Task LoadAmiliousNewsAsync() {
+            try {
+                using var http = new HttpClient();
+                http.DefaultRequestHeaders.UserAgent.ParseAdd("AmiliousScape-Launcher");
 
-        var launcherTask = http.GetStringAsync(
-            "https://api.github.com/repos/amilious-ba/AmiliousScape-Launcher/releases");
-        var clientTask = http.GetStringAsync(
-            "https://api.github.com/repos/amilious-ba/RT4-Client/releases");
+                var launcherTask = http.GetStringAsync(
+                    "https://api.github.com/repos/amilious-ba/AmiliousScape-Launcher/releases");
+                var clientTask = http.GetStringAsync(
+                    "https://api.github.com/repos/amilious-ba/RT4-Client/releases");
 
-        await Task.WhenAll(launcherTask, clientTask);
+                await Task.WhenAll(launcherTask, clientTask);
 
-        var entries = new List<(DateTime published, string kind, string name, string dateText, string body)>();
+                var entries = new List<(DateTime published, string kind, string name, string dateText, string body)>();
 
-        void AddReleases(string json, string kind)
-        {
-            using var doc = System.Text.Json.JsonDocument.Parse(json);
-            foreach (var rel in doc.RootElement.EnumerateArray())
-            {
-                if (rel.TryGetProperty("draft", out var draft) && draft.GetBoolean())
-                    continue;
+                void AddReleases(string json, string kind) {
+                    using var doc = System.Text.Json.JsonDocument.Parse(json);
+                    foreach (var rel in doc.RootElement.EnumerateArray()) {
+                        if (rel.TryGetProperty("draft", out var draft) && draft.GetBoolean()) continue;
 
-                var tag = rel.TryGetProperty("tag_name", out var tagEl)
-                    ? tagEl.GetString() ?? ""
-                    : "";
+                        var tag = rel.TryGetProperty("tag_name", out var tagEl) ? 
+                            tagEl.GetString() ?? "" : "";
 
-                var name = rel.TryGetProperty("name", out var nameEl)
-                    ? nameEl.GetString()
-                    : null;
-                if (string.IsNullOrWhiteSpace(name))
-                    name = tag;
+                        var name = rel.TryGetProperty("name", out var nameEl)
+                            ? nameEl.GetString() : null;
+                        if (string.IsNullOrWhiteSpace(name)) name = tag;
 
-                var body = rel.TryGetProperty("body", out var bodyEl)
-                    ? bodyEl.GetString()
-                    : "";
-                if (string.IsNullOrWhiteSpace(body))
-                    body = "(no release notes)";
+                        var body = rel.TryGetProperty("body", out var bodyEl)
+                            ? bodyEl.GetString() : "";
+                        if (string.IsNullOrWhiteSpace(body))
+                            body = "(no release notes)";
 
-                var published = DateTime.MinValue;
-                if (rel.TryGetProperty("published_at", out var pubEl)
-                    && DateTime.TryParse(pubEl.GetString(), out var dt))
-                {
-                    published = dt.ToUniversalTime();
+                        var published = DateTime.MinValue;
+                        if (rel.TryGetProperty("published_at", out var pubEl)
+                            && DateTime.TryParse(pubEl.GetString(), out var dt)) {
+                            published = dt.ToUniversalTime();
+                        }
+
+                        var dateText = published == DateTime.MinValue ? "unknown date" : 
+                            published.ToLocalTime().ToString("yyyy-MM-dd");
+
+                        entries.Add((published, kind, name!, dateText, body));
+                    }
                 }
 
-                var dateText = published == DateTime.MinValue
-                    ? "unknown date"
-                    : published.ToLocalTime().ToString("yyyy-MM-dd");
+                AddReleases(await launcherTask, "Launcher");
+                AddReleases(await clientTask, "Client");
 
-                entries.Add((published, kind, name!, dateText, body));
+                if (entries.Count == 0) {
+                    AmiliousNewsInlines = new InlineCollection {
+                        new Run("No releases found.")
+                    };
+                    return;
+                }
+
+                var inlines = new InlineCollection();
+
+                foreach (var e in entries.OrderByDescending(x => x.published)) {
+                    // Bold + larger title
+                    inlines.Add(new Run($"{e.kind} {e.name}") {
+                        FontWeight = FontWeight.Bold,
+                        FontSize = 16
+                    });
+
+                    // Normal published date
+                    inlines.Add(new Run($" — published {e.dateText}") { FontSize = 13 });
+                    inlines.Add(new LineBreak());
+
+                    // Indented notes
+                    foreach (var line in e.body.Replace("\r\n", "\n").Split('\n')) {
+                        inlines.Add(new Run("    " + line) { FontSize = 13 });
+                        inlines.Add(new LineBreak());
+                    }
+
+                    inlines.Add(new LineBreak());
+                }
+
+                AmiliousNewsInlines = inlines;
+            }catch (Exception ex) {
+                AmiliousNewsInlines = new InlineCollection {
+                    new Run($"Unable to load AmiliousScape release notes.\n\n{ex.Message}")
+                };
             }
         }
 
-        AddReleases(await launcherTask, "Launcher");
-        AddReleases(await clientTask, "Client");
+        private async Task Load2009ScapeNewsAsync() {
+            
+            using var httpClient = new HttpClient();
+            HtmlNode node;
+            var doc = new HtmlDocument();
 
-        if (entries.Count == 0)
-        {
-            AmiliousNewsInlines = new InlineCollection
-            {
-                new Run("No releases found.")
-            };
-            return;
-        }
-
-        var inlines = new InlineCollection();
-
-        foreach (var e in entries.OrderByDescending(x => x.published))
-        {
-            // Bold + larger title
-            inlines.Add(new Run($"{e.kind} {e.name}")
-            {
-                FontWeight = FontWeight.Bold,
-                FontSize = 16
-            });
-
-            // Normal published date
-            inlines.Add(new Run($" — published {e.dateText}")
-            {
-                FontSize = 13
-            });
-            inlines.Add(new LineBreak());
-
-            // Indented notes
-            foreach (var line in e.body.Replace("\r\n", "\n").Split('\n'))
-            {
-                inlines.Add(new Run("    " + line) { FontSize = 13 });
-                inlines.Add(new LineBreak());
+            try {
+                var response =
+                    await httpClient.GetAsync("https://2009scape.org/services/m=news/archives/latest.html");
+                doc.Load(await response.Content.ReadAsStreamAsync());
+                node = doc.DocumentNode.SelectSingleNode("//div[@class='msgcontents']");
+            }
+            catch (HttpRequestException) {
+                node = ConnectionErrorMessage(doc, "lack of an internet connection.");
             }
 
-            inlines.Add(new LineBreak());
+            node ??= ConnectionErrorMessage(doc, 
+                "blocked internet connection. The stable server should still work.");
+
+            var renderer = new HtmlRenderer(node);
+            HtmlInlines = renderer.Render();
         }
 
-        AmiliousNewsInlines = inlines;
-    }
-    catch (Exception ex)
-    {
-        AmiliousNewsInlines = new InlineCollection
-        {
-            new Run($"Unable to load AmiliousScape release notes.\n\n{ex.Message}")
-        };
-    }
-}
-
-private async Task Load2009ScapeNewsAsync()
-{
-    using var httpClient = new HttpClient();
-    HtmlNode node;
-    var doc = new HtmlDocument();
-
-    try
-    {
-        var response =
-            await httpClient.GetAsync("https://2009scape.org/services/m=news/archives/latest.html");
-        doc.Load(await response.Content.ReadAsStreamAsync());
-        node = doc.DocumentNode.SelectSingleNode("//div[@class='msgcontents']");
-    }
-    catch (HttpRequestException)
-    {
-        node = ConnectionErrorMessage(doc, "lack of an internet connection.");
-    }
-
-    if (node == null)
-    {
-        node = ConnectionErrorMessage(doc, "blocked internet connection. The stable server should still work.");
-    }
-
-    var renderer = new HtmlRenderer(node);
-    HtmlInlines = renderer.Render();
-}
-
-        public void NotificatationBoxStateChanged(NotificationBoxStateChangedMessage msg)
-        {
+        public void NotificationBoxStateChanged(NotificationBoxStateChangedMessage msg) {
             DimContent = msg.WasOpened;
         }
 
-        public void LaunchPage(object parameter)
-        {
-            var url = parameter switch
-            {
+        public void LaunchPage(object parameter) {
+            var url = parameter switch {
                 "news" => "https://2009scape.org/services/m=news/archives/latest.html",
                 "issues" => "https://gitlab.com/2009scape/2009scape/-/issues",
                 "forums" => "https://forum.2009scape.org",
@@ -354,47 +300,31 @@ private async Task Load2009ScapeNewsAsync()
         }
 
         [DependsOn(nameof(CanLaunch))]
-        public bool CanExecuteLaunchSequence(object parameter)
-            => CanLaunch;
+        public bool CanExecuteLaunchSequence(object parameter) => CanLaunch;
 
         //Stub to maintain compatibility with AXAML
-        public async Task ExecuteLaunchSequence()
-        {
+        public async Task ExecuteLaunchSequence() {
             await ExecuteLaunchSequence(false);
         }
 
-        private async Task ExecuteLaunchSequence(bool forceWait)
-        {
+        private async Task ExecuteLaunchSequence(bool forceWait) {
             CanLaunch = false;
-
-            try
-            {
+            try {
                 if (!File.Exists(_updateService.PreferredTargetFilePath) ||
                     _settingsService.Launcher.CheckForClientUpdatesOnLaunch)
                     await AttemptUpdate();
-            }
-            catch (Exception e)
-            {
+            }catch (Exception e) {
                 CanLaunch = true;
                 LaunchText = $"Failed to update AmiliousScape: {e.Message}";
                 return;
             }
-
-            try
-            {
-                if (OperatingSystem.IsWindows())
-                {
-                    if (!IsJavaVersion("11"))
-                        await _javaUpdateService.DownloadAndSetJava11(_settingsService);
+            try {
+                if (OperatingSystem.IsWindows()) {
+                    if (!IsJavaVersion("11")) await _javaUpdateService.DownloadAndSetJava11(_settingsService);
+                }else {
+                    if (!IsJavaVersion("25")) await _javaUpdateService.DownloadAndSetJava25(_settingsService);
                 }
-                else
-                {
-                    if (!IsJavaVersion("25"))
-                        await _javaUpdateService.DownloadAndSetJava25(_settingsService);
-                }
-            }
-            catch (Exception e)
-            {
+            }catch (Exception e) {
                 CanLaunch = true;
                 LaunchText = $"Failed to download and set Java: {e.Message}";
                 return;
@@ -404,32 +334,19 @@ private async Task Load2009ScapeNewsAsync()
                 _settingsService.Launcher.CheckForServerProfilesOnLaunch)
                 await AttemptServerProfileUpdate();
 
-            try
-            {
+            try {
                 LaunchLog = $"[{DateTime.Now:HH:mm:ss}] Starting launch...\n";
                 LaunchText = "Play! (already running)";
+                
+                SelectedTabIndex = 3;                            // 1) switch to log tab
+                new LogTabActivatedMessage().Broadcast();        // 2) then tell the window to scroll
+                var t = _launchService.LaunchClient();      // 3) then start the client
 
-                // 1) switch to log tab
-                SelectedTabIndex = 3;
-
-                // 2) then tell the window to scroll
-                new LogTabActivatedMessage().Broadcast();
-
-                // 3) then start the client
-                var t = _launchService.LaunchClient();
-
-                if (!_settingsService.Launcher.AllowMultiboxing || forceWait)
-                    await t;
-            }
-            catch (Exception e)
-            {
-                NotificationBox.DisplayNotification(
-                    "Error",
-                    $"Unable to launch the AmiliousScape client.\n\n{e.Message}"
-                );
-            }
-            finally
-            {
+                if (!_settingsService.Launcher.AllowMultiboxing || forceWait) await t;
+            }catch (Exception e) {
+                NotificationBox.DisplayNotification("Error",
+                    $"Unable to launch the AmiliousScape client.\n\n{e.Message}");
+            }finally {
                 CanLaunch = true;
                 LaunchText = "Play AmiliousScape!";
                 Message.Broadcast<ClientClosedMessage>();
@@ -493,31 +410,45 @@ private async Task Load2009ScapeNewsAsync()
             }
         }
 
+        /// <summary>
+        /// Determines if the installed Java version matches the specified major version.
+        /// </summary>
+        /// <param name="major">The major version of Java to check for.</param>
+        /// <returns>True if the installed Java version matches the specified major version; otherwise, false.</returns>
         private bool IsJavaVersion(string major) {
             if (string.IsNullOrWhiteSpace(Launcher.JavaExecutableLocation) ||
                 !File.Exists(Launcher.JavaExecutableLocation))
                 return false;
-
-            string javaVersionOutput = CrossPlatform.RunCommandAndGetOutput(
+            var javaVersionOutput = CrossPlatform.RunCommandAndGetOutput(
                 $"\"{Launcher.JavaExecutableLocation}\" -version"
             );
             return javaVersionOutput.Contains($"version \"{major}");
         }
         
+        /// <summary>
+        /// This method is called when the client download progress is updated.
+        /// </summary>
+        /// <param name="sender">The sender of the event.</param>
+        /// <param name="e">The current download progress.</param>
         private void OnClientDownloadProgressUpdated(object sender, float e) {
             LaunchText = $"Updating... (Downloading client - {e * 100:F2}%)";
         }
         
-        private void OnJavaDownloadProgressUpdated(object sender, UpdateInfo updateInfo) {
-            if (updateInfo.IsFinished) {
+        /// <summary>
+        /// This method is called when the Java download progress is updated.
+        /// </summary>
+        /// <param name="sender">The sender of the event.</param>
+        /// <param name="u">The current update information.</param>
+        private void OnJavaDownloadProgressUpdated(object sender, JavaUpdateInfo u) {
+            if (u.IsFinished) {
                 LaunchText = "Play! (Multiplayer)";
                 return;
             }
-            if (updateInfo.ProgressPercentage >= 0.999f) {
-                LaunchText = $"Updating... (Extracting Java {updateInfo.Version})";
+            if (u.ProgressPercentage >= 0.999f) {
+                LaunchText = $"Updating... (Extracting Java {u.Version})";
                 return;
             }
-            LaunchText = $"Updating... (Downloading Java {updateInfo.Version} - {updateInfo.ProgressPercentage * 100:F2}%)";
+            LaunchText = $"Updating... (Downloading Java {u.Version} - {u.ProgressPercentage * 100:F2}%)";
         }
         
     }

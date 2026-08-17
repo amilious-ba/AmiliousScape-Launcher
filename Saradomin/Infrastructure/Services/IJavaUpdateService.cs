@@ -2,13 +2,13 @@ using System;
 using System.Threading.Tasks;
 using Glitonea.Mvvm;
 
-namespace Saradomin.Infrastructure.Services
-{
+namespace Saradomin.Infrastructure.Services {
+    
     public interface IJavaUpdateService : IService {
         
-        event EventHandler<UpdateInfo> JavaDownloadProgressChanged;
+        event EventHandler<JavaUpdateInfo> JavaDownloadProgressChanged;
         Task DownloadAndSetJava11(ISettingsService settingsService);
         Task DownloadAndSetJava25(ISettingsService settingsService);
+        
     }
-    
 }

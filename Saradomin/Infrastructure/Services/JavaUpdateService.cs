@@ -10,7 +10,7 @@ namespace Saradomin.Infrastructure.Services
 {
     public class JavaUpdateService : IJavaUpdateService {
         
-        public event EventHandler<UpdateInfo> JavaDownloadProgressChanged;
+        public event EventHandler<JavaUpdateInfo> JavaDownloadProgressChanged;
 
         
         public async Task DownloadAndSetJava25(ISettingsService settingsService) {
@@ -36,13 +36,13 @@ namespace Saradomin.Infrastructure.Services
 
                         var progress = (float)totalRead / contentLength;
                         JavaDownloadProgressChanged?.Invoke(this, 
-                            new UpdateInfo(25,downloadUrl,progress,false));
+                            new JavaUpdateInfo(25,downloadUrl,progress,false));
                     } while (bytesRead > 0);
                 }
             }
 
             JavaDownloadProgressChanged?.Invoke(this, 
-                new UpdateInfo(25, downloadUrl, 1f, false));
+                new JavaUpdateInfo(25, downloadUrl, 1f, false));
 
             if (Directory.Exists(extractedPath)) Directory.Delete(extractedPath, true);
 
@@ -72,7 +72,7 @@ namespace Saradomin.Infrastructure.Services
 
             settingsService.SaveAll();
             JavaDownloadProgressChanged?.Invoke(this, 
-                new UpdateInfo(25,downloadUrl,1f,true));
+                new JavaUpdateInfo(25,downloadUrl,1f,true));
         }
         
         public async Task DownloadAndSetJava11(ISettingsService settingsService) {
@@ -101,13 +101,13 @@ namespace Saradomin.Infrastructure.Services
                             await fileStream.WriteAsync(buffer, 0, bytesRead);
 
                             var progress = (float)totalRead / contentLength;
-                            JavaDownloadProgressChanged?.Invoke(this, new UpdateInfo(11,downloadUrl,progress,false));
+                            JavaDownloadProgressChanged?.Invoke(this, new JavaUpdateInfo(11,downloadUrl,progress,false));
                         } while (bytesRead > 0);
                     }
                 }
             }
             
-            JavaDownloadProgressChanged?.Invoke(this, new UpdateInfo(11,downloadUrl,1f,false));
+            JavaDownloadProgressChanged?.Invoke(this, new JavaUpdateInfo(11,downloadUrl,1f,false));
             
             if (Directory.Exists(extractedPath)) Directory.Delete(extractedPath, true);
             
@@ -136,7 +136,7 @@ namespace Saradomin.Infrastructure.Services
                     extractedPath, "bin", "java");
             }
             settingsService.SaveAll();
-            JavaDownloadProgressChanged?.Invoke(this, new UpdateInfo(11,downloadUrl,1f,true));
+            JavaDownloadProgressChanged?.Invoke(this, new JavaUpdateInfo(11,downloadUrl,1f,true));
         }
     }
 }
