@@ -17,9 +17,9 @@ namespace Saradomin.Infrastructure.Services
         private float CurrentDownloadProgress { get; set; }
 
         // Just used for display / reference
-        public string ClientDownloadURL => "https://github.com/amilious-ba/RT4-Client/releases/latest";
+        public string ClientDownloadURL => "https://github.com/amilious-ba/AmiliousScape-Client/releases/latest";
 
-        private const string GitHubApiLatest = "https://api.github.com/repos/amilious-ba/RT4-Client/releases/latest";
+        private const string GitHubApiLatest = "https://api.github.com/repos/amilious-ba/AmiliousScape-Client/releases/latest";
 
         public string PreferredTargetFilePath =>
             CrossPlatform.GetAmiliousScapeExecutable();
@@ -41,7 +41,7 @@ namespace Saradomin.Infrastructure.Services
 
             foreach (var asset in doc.RootElement.GetProperty("assets").EnumerateArray())
             {
-                if (asset.GetProperty("name").GetString() == "client.jar")
+                if (asset.GetProperty("name").GetString() == "AmiliousScape.jar")
                 {
                     // GitHub returns "sha256:abcdef123..."
                     var digest = asset.GetProperty("digest").GetString();
@@ -52,7 +52,7 @@ namespace Saradomin.Infrastructure.Services
                 }
             }
 
-            throw new Exception("Could not find client.jar or its digest in the latest GitHub release.");
+            throw new Exception("Could not find AmiliousScape.jar or its digest in the latest GitHub release.");
         }
 
         public async Task FetchRemoteClientExecutableAsync(CancellationToken cancellationToken,
@@ -74,7 +74,7 @@ namespace Saradomin.Infrastructure.Services
             string downloadUrl = null;
             foreach (var asset in doc.RootElement.GetProperty("assets").EnumerateArray())
             {
-                if (asset.GetProperty("name").GetString() == "client.jar")
+                if (asset.GetProperty("name").GetString() == "AmiliousScape.jar")
                 {
                     downloadUrl = asset.GetProperty("browser_download_url").GetString();
                     break;
@@ -82,7 +82,7 @@ namespace Saradomin.Infrastructure.Services
             }
 
             if (string.IsNullOrEmpty(downloadUrl))
-                throw new Exception("Could not find client.jar in the latest GitHub release.");
+                throw new Exception("Could not find AmiliousScape.jar in the latest GitHub release.");
 
             var response = await httpClient.GetAsync(downloadUrl, cancellationToken);
             response.EnsureSuccessStatusCode();

@@ -45,7 +45,7 @@ namespace Saradomin.ViewModel.Controls {
             => CrossPlatform.LaunchUrl("https://gitlab.com/2009scape/tools/client-plugins");
 
         public void LaunchProjectWebsite()
-            => CrossPlatform.LaunchUrl("https://github.com/amilious-ba/RT4-Client");  // or your launcher repo later
+            => CrossPlatform.LaunchUrl("https://github.com/amilious-ba/AmiliousScape-Client");  // or your launcher repo later
 
         public void OpenGameDirectory() {
             var path = CrossPlatform.GetAmiliousScapeHome();

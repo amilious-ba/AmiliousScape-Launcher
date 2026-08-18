@@ -7,7 +7,7 @@ namespace Saradomin.Model.Settings.Launcher
         public const string FileName = "saradomin_launcher.json";
         
         public bool PlaceCloseButtonOnLeft { get; set; } = false;
-        public bool ExitAfterLaunchingClient { get; set; } = true;
+        public bool ExitAfterLaunchingClient { get; set; } = false;
         public bool AllowMultiboxing { get; set; } = false;
         public bool CheckForClientUpdatesOnLaunch { get; set; } = true;
         public bool CheckForServerProfilesOnLaunch { get; set; } = true;

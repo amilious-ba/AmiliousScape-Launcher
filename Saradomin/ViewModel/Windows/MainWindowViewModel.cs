@@ -17,6 +17,7 @@ using Version = System.Version;
 using static System.Environment;
 using System.Collections.Generic;
 using Avalonia.Controls.Documents;
+using Markdig;
 using Saradomin.Infrastructure.Services;
 using Saradomin.Model.Settings.Launcher;
 
@@ -176,89 +177,114 @@ namespace Saradomin.ViewModel.Windows {
         
         public Task CheckLauncherUpdateFromSettingsAsync() => CheckLauncherUpdateAsync(promptIfAvailable: true);
 
-        private async Task LoadAmiliousNewsAsync() {
-            try {
-                using var http = new HttpClient();
-                http.DefaultRequestHeaders.UserAgent.ParseAdd("AmiliousScape-Launcher");
+        private async Task LoadAmiliousNewsAsync()
+{
+    try
+    {
+        using var http = new HttpClient();
+        http.DefaultRequestHeaders.UserAgent.ParseAdd("AmiliousScape-Launcher");
 
-                var launcherTask = http.GetStringAsync(
-                    "https://api.github.com/repos/amilious-ba/AmiliousScape-Launcher/releases");
-                var clientTask = http.GetStringAsync(
-                    "https://api.github.com/repos/amilious-ba/RT4-Client/releases");
+        var launcherTask = http.GetStringAsync(
+            "https://api.github.com/repos/amilious-ba/AmiliousScape-Launcher/releases");
+        var clientTask = http.GetStringAsync(
+            "https://api.github.com/repos/amilious-ba/AmiliousScape-Client/releases");
 
-                await Task.WhenAll(launcherTask, clientTask);
+        await Task.WhenAll(launcherTask, clientTask);
 
-                var entries = new List<(DateTime published, string kind, string name, string dateText, string body)>();
+        var entries = new List<(DateTime published, string kind, string name, string dateText, string body)>();
 
-                void AddReleases(string json, string kind) {
-                    using var doc = System.Text.Json.JsonDocument.Parse(json);
-                    foreach (var rel in doc.RootElement.EnumerateArray()) {
-                        if (rel.TryGetProperty("draft", out var draft) && draft.GetBoolean()) continue;
+        void AddReleases(string json, string kind)
+        {
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+            foreach (var rel in doc.RootElement.EnumerateArray())
+            {
+                if (rel.TryGetProperty("draft", out var draft) && draft.GetBoolean())
+                    continue;
 
-                        var tag = rel.TryGetProperty("tag_name", out var tagEl) ? 
-                            tagEl.GetString() ?? "" : "";
+                var tag = rel.TryGetProperty("tag_name", out var tagEl)
+                    ? tagEl.GetString() ?? ""
+                    : "";
 
-                        var name = rel.TryGetProperty("name", out var nameEl)
-                            ? nameEl.GetString() : null;
-                        if (string.IsNullOrWhiteSpace(name)) name = tag;
+                var name = rel.TryGetProperty("name", out var nameEl)
+                    ? nameEl.GetString()
+                    : null;
+                if (string.IsNullOrWhiteSpace(name))
+                    name = tag;
 
-                        var body = rel.TryGetProperty("body", out var bodyEl)
-                            ? bodyEl.GetString() : "";
-                        if (string.IsNullOrWhiteSpace(body))
-                            body = "(no release notes)";
+                var body = rel.TryGetProperty("body", out var bodyEl)
+                    ? bodyEl.GetString()
+                    : "";
+                if (string.IsNullOrWhiteSpace(body))
+                    body = "(no release notes)";
 
-                        var published = DateTime.MinValue;
-                        if (rel.TryGetProperty("published_at", out var pubEl)
-                            && DateTime.TryParse(pubEl.GetString(), out var dt)) {
-                            published = dt.ToUniversalTime();
-                        }
-
-                        var dateText = published == DateTime.MinValue ? "unknown date" : 
-                            published.ToLocalTime().ToString("yyyy-MM-dd");
-
-                        entries.Add((published, kind, name!, dateText, body));
-                    }
+                var published = DateTime.MinValue;
+                if (rel.TryGetProperty("published_at", out var pubEl)
+                    && DateTime.TryParse(pubEl.GetString(), out var dt))
+                {
+                    published = dt.ToUniversalTime();
                 }
 
-                AddReleases(await launcherTask, "Launcher");
-                AddReleases(await clientTask, "Client");
+                var dateText = published == DateTime.MinValue
+                    ? "unknown date"
+                    : published.ToLocalTime().ToString("yyyy-MM-dd");
 
-                if (entries.Count == 0) {
-                    AmiliousNewsInlines = new InlineCollection {
-                        new Run("No releases found.")
-                    };
-                    return;
-                }
-
-                var inlines = new InlineCollection();
-
-                foreach (var e in entries.OrderByDescending(x => x.published)) {
-                    // Bold + larger title
-                    inlines.Add(new Run($"{e.kind} {e.name}") {
-                        FontWeight = FontWeight.Bold,
-                        FontSize = 16
-                    });
-
-                    // Normal published date
-                    inlines.Add(new Run($" — published {e.dateText}") { FontSize = 13 });
-                    inlines.Add(new LineBreak());
-
-                    // Indented notes
-                    foreach (var line in e.body.Replace("\r\n", "\n").Split('\n')) {
-                        inlines.Add(new Run("    " + line) { FontSize = 13 });
-                        inlines.Add(new LineBreak());
-                    }
-
-                    inlines.Add(new LineBreak());
-                }
-
-                AmiliousNewsInlines = inlines;
-            }catch (Exception ex) {
-                AmiliousNewsInlines = new InlineCollection {
-                    new Run($"Unable to load AmiliousScape release notes.\n\n{ex.Message}")
-                };
+                entries.Add((published, kind, name!, dateText, body));
             }
         }
+
+        AddReleases(await launcherTask, "Launcher");
+        AddReleases(await clientTask, "Client");
+
+        if (entries.Count == 0)
+        {
+            AmiliousNewsInlines = new InlineCollection
+            {
+                new Run("No releases found.")
+            };
+            return;
+        }
+
+        // Create the pipeline once (not inside the loop)
+        var pipeline = new MarkdownPipelineBuilder()
+            .UseAdvancedExtensions()
+            .Build();
+
+        var inlines = new InlineCollection();
+
+        foreach (var e in entries.OrderByDescending(x => x.published)) {
+            // Title
+            inlines.Add(new Run($"{e.kind} {e.name}") {
+                FontWeight = FontWeight.Bold,
+                FontSize = 16
+            });
+            inlines.Add(new Run($" — published {e.dateText}") { FontSize = 13 });
+            inlines.Add(new LineBreak());
+            inlines.Add(new LineBreak());
+
+            // Markdown → HTML → Inlines
+            var html = Markdown.ToHtml(e.body, pipeline);
+
+            var doc = new HtmlDocument();
+            doc.LoadHtml($"<div>{html}</div>");
+
+            var renderer = new HtmlRenderer(doc.DocumentNode);
+            foreach (var inline in renderer.Render())
+                inlines.Add(inline);
+
+            inlines.Add(new LineBreak());
+            inlines.Add(new LineBreak());
+        }
+
+        AmiliousNewsInlines = inlines;
+    }
+    catch (Exception ex)
+    {
+        AmiliousNewsInlines = new InlineCollection
+        {
+            new Run($"Unable to load AmiliousScape release notes.\n\n{ex.Message}")
+        };
+    }
+}
 
         private async Task Load2009ScapeNewsAsync() {
             

@@ -28,10 +28,10 @@ namespace Saradomin.Model.Settings.Client
         public string PluginsFolder { get; set; } = "plugins";
 
         [JsonPropertyName("borderlessFullscreen")]
-        public bool BorderlessFullscreen { get; set; } = false;
+        public bool BorderlessFullscreen { get; set; } = true;
 
         [JsonPropertyName("startFullscreen")]
-        public bool StartFullscreen { get; set; } = true;
+        public bool StartFullscreen { get; set; } = false;
 
         [JsonPropertyName("ui_scale")]
         public int UiScale { get; set; } = 1;
