@@ -126,6 +126,8 @@
 
             <CheckBox Content="Borderless fullscreen"
                       IsChecked="{Binding Client.BorderlessFullscreen, Mode=TwoWay}" />
+            <CheckBox Content="Enable Amilious debug at start"
+                      IsChecked="{Binding Client.EnableAmiliousDebugAtStart, Mode=TwoWay}" />
         </StackPanel>
         <Button Margin="0,8,0,0"
                 HorizontalAlignment="Stretch"

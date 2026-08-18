@@ -35,7 +35,7 @@ namespace Saradomin.Utilities {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 var envPath = Environment.GetEnvironmentVariable("JAVA_HOME");
 
-                if (!string.IsNullOrEmpty(envPath)) return Path.Combine(envPath, "bin/java.exe");
+                if (!string.IsNullOrEmpty(envPath)) return Path.Combine(envPath, "bin/javaw.exe");
                 
                 using (var rk = Registry.LocalMachine.OpenSubKey("SOFTWARE\\JavaSoft\\Java Runtime Environment\\")) {
                     if (rk == null) return null;
@@ -50,7 +50,7 @@ namespace Saradomin.Utilities {
                     }
                 }
 
-                return !string.IsNullOrEmpty(envPath) ? Path.Combine(envPath, "bin/java.exe") : 
+                return !string.IsNullOrEmpty(envPath) ? Path.Combine(envPath, "bin/javaw.exe") : 
                     throw new FileNotFoundException("Failed to find Java. Make sure it's installed!");
             }
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)

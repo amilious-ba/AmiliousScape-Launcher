@@ -32,11 +32,16 @@ namespace Saradomin.Model.Settings.Client
 
         [JsonPropertyName("startFullscreen")]
         public bool StartFullscreen { get; set; } = false;
+        
+        [JsonPropertyName("enableAmiliousDebugAtStart")]
+        public bool EnableAmiliousDebugAtStart { get; set; } = false;
 
         [JsonPropertyName("ui_scale")]
         public int UiScale { get; set; } = 1;
 
         [JsonPropertyName("fps")]
         public int Fps { get; set; } = 0;
+        
+        
     }
 }
