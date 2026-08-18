@@ -37,7 +37,7 @@ namespace Saradomin.Model.Settings.Client
         public bool EnableAmiliousDebugAtStart { get; set; } = false;
 
         [JsonPropertyName("ui_scale")]
-        public int UiScale { get; set; } = 1;
+        public float UiScale { get; set; } = 1f;
 
         [JsonPropertyName("fps")]
         public int Fps { get; set; } = 0;

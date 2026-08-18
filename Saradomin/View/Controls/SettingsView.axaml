@@ -1,5 +1,6 @@
 <UserControl x:Class="Saradomin.View.Controls.SettingsView"
              xmlns="https://github.com/avaloniaui"
+             xmlns:gl="using:System.Globalization"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:controls="clr-namespace:Saradomin.View.Controls"
              xmlns:mvvm="clr-namespace:Glitonea.Mvvm;assembly=Glitonea"
@@ -87,10 +88,10 @@
                                AllowSpin="True"
                                Classes="NormalNumericUpDown"
                                ClipValueToMinMax="True"
-                               FormatString="0"
+                               FormatString="0.#"
+                               Increment="0.1"
                                Maximum="4"
-                               Minimum="1"
-                               ParsingNumberStyle="Integer"
+                               Minimum="0.1"
                                ShowButtonSpinner="True"
                                Value="{Binding Client.UiScale, Mode=TwoWay}" />
             </Grid>
