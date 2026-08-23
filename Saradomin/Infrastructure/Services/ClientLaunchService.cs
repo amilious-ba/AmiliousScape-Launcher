@@ -24,9 +24,12 @@ namespace Saradomin.Infrastructure.Services {
             var javaPath = _settingsService.Launcher.JavaExecutableLocation;
             var uiScale = _settingsService.Client.UiScale;
             var fps = _settingsService.Client.Fps;
-
+            
             var args =
                 $"-Dsun.java2d.uiScale={uiScale} " +
+                "-Dsun.java2d.noddraw=true "+
+                "-Dsun.java2d.opengl=false "+
+                "-Dsun.java2d.d3d=false "+
                 $"-DclientFps={fps} " +
                 $"-DclientHomeOverride=\"{home}/\" " +
                 $"-jar \"{jarPath}\"";
