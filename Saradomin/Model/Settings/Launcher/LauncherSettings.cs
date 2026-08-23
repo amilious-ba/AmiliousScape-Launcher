@@ -13,6 +13,8 @@ namespace Saradomin.Model.Settings.Launcher
         public bool CheckForServerProfilesOnLaunch { get; set; } = true;
         public string JavaExecutableLocation { get; set; }
         public bool CheckForLauncherUpdatesOnLaunch { get; set; } = true;
+        
+        public bool DisableJava2dHardwareAccel { get; set; } = false;
         /// <summary>
         /// Remote hash the user chose "Later" for; skip nagging until a different release appears.
         /// </summary>

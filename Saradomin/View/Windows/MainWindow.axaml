@@ -147,6 +147,18 @@
                     
                     <TabItem Width="95"
                              HorizontalContentAlignment="Center"
+                             Header="plugins">
+                        <Border Margin="4,4,4,0"
+                                Background="{StaticResource MediumBackgroundBrush}"
+                                BorderBrush="{StaticResource SemiLightMediumBorderBrush}"
+                                BorderThickness="1,1,1,0"
+                                CornerRadius="6,6,0,0">
+                            <controls:PluginManagerView Margin="4" />
+                        </Border>
+                    </TabItem>
+                    
+                    <TabItem Width="95"
+                             HorizontalContentAlignment="Center"
                              Header="log">
                         <Border Margin="4,4,4,0"
                                 Background="{StaticResource MediumBackgroundBrush}"

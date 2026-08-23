@@ -25,11 +25,13 @@ namespace Saradomin.Infrastructure.Services {
             var uiScale = _settingsService.Client.UiScale;
             var fps = _settingsService.Client.Fps;
             
+            var accel = _settingsService.Launcher.DisableJava2dHardwareAccel
+                ? "-Dsun.java2d.noddraw=true -Dsun.java2d.opengl=false -Dsun.java2d.d3d=false "
+                : "";
+
             var args =
+                accel +
                 $"-Dsun.java2d.uiScale={uiScale} " +
-                "-Dsun.java2d.noddraw=true "+
-                "-Dsun.java2d.opengl=false "+
-                "-Dsun.java2d.d3d=false "+
                 $"-DclientFps={fps} " +
                 $"-DclientHomeOverride=\"{home}/\" " +
                 $"-jar \"{jarPath}\"";

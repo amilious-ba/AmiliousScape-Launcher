@@ -28,6 +28,8 @@
 
                     <CheckBox Content="Allow multiple client instances to run"
                               IsChecked="{Binding Launcher.AllowMultiboxing, Mode=TwoWay}" />
+                    <CheckBox Content="Disable Java2D GPU (noddraw / no GL / no D3D)"
+                              IsChecked="{Binding Launcher.DisableJava2dHardwareAccel, Mode=TwoWay}" />
                     <CheckBox Content="Check for launcher updates on launch"
                               IsChecked="{Binding Launcher.CheckForLauncherUpdatesOnLaunch, Mode=TwoWay}" />
                     <Button Classes="OutsideNavigator"
@@ -63,6 +65,51 @@
                                 ToolTip.Tip="Browse..." />
                     </Grid>
                     
+                </StackPanel>
+            </HeaderedContentControl>
+            
+            
+
+            
+        </DockPanel>
+
+        <DockPanel Grid.Column="1"
+                   DockPanel.Dock="Top">
+            <HeaderedContentControl Margin="2,2,0,0"
+                                    Classes="GroupBox"
+                                    DockPanel.Dock="Top"
+                                    Header="about this project">
+                <HeaderedContentControl.HeaderTemplate>
+                    <DataTemplate>
+                        <TextBlock HorizontalAlignment="Center"
+                                   Text="{Binding Header}" />
+                    </DataTemplate>
+                </HeaderedContentControl.HeaderTemplate>
+
+                <StackPanel HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Spacing="4">
+                    <TextBlock HorizontalAlignment="Center"
+                               Foreground="{StaticResource DarkForegroundBrush}"
+                               Text="Edited with ❤ by Amilious based on Saradomin" />
+
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Center">
+                        <TextBlock Foreground="{StaticResource DarkForegroundBrush}"
+                                   Text="Made with ❤ by vddCore of " />
+                        <Button Classes="Hyperlink"
+                                Command="{Binding LaunchScapeWebsite}"
+                                Content="2009scape." />
+                    </StackPanel>
+
+                    <TextBlock HorizontalAlignment="Center"
+                               Foreground="{StaticResource DarkForegroundBrush}"
+                               Text="{Binding VersionString}" />
+
+                    <Button HorizontalAlignment="Center"
+                            Classes="Hyperlink"
+                            Command="{Binding LaunchProjectWebsite}"
+                            Content="visit project website" />
                 </StackPanel>
             </HeaderedContentControl>
             
@@ -129,6 +176,16 @@
                       IsChecked="{Binding Client.BorderlessFullscreen, Mode=TwoWay}" />
             <CheckBox Content="Enable Amilious debug at start"
                       IsChecked="{Binding Client.EnableAmiliousDebugAtStart, Mode=TwoWay}" />
+            <TextBlock Margin="0,4,0,0"
+                       Foreground="{StaticResource DarkForegroundBrush}"
+                       Text="Frame sync" />
+
+            <ComboBox Width="160"
+                      SelectedIndex="{Binding SwapIntervalIndex, Mode=TwoWay}">
+                <ComboBoxItem Content="VSync (1)" />
+                <ComboBoxItem Content="Uncapped (0)" />
+                <ComboBoxItem Content="Adaptive (-1)" />
+            </ComboBox>
         </StackPanel>
         <Button Margin="0,8,0,0"
                 HorizontalAlignment="Stretch"
@@ -139,55 +196,6 @@
                 ToolTip.Tip="Open AmiliousScape game directory" />
     </StackPanel>
 </HeaderedContentControl>
-
-            
-        </DockPanel>
-
-        <DockPanel Grid.Column="1"
-                   DockPanel.Dock="Top">
-            <HeaderedContentControl Margin="2,2,0,0"
-                                    Classes="GroupBox"
-                                    DockPanel.Dock="Top"
-                                    Header="about this project">
-                <HeaderedContentControl.HeaderTemplate>
-                    <DataTemplate>
-                        <TextBlock HorizontalAlignment="Center"
-                                   Text="{Binding Header}" />
-                    </DataTemplate>
-                </HeaderedContentControl.HeaderTemplate>
-
-                <StackPanel HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            Spacing="4">
-                    <TextBlock HorizontalAlignment="Center"
-                               Foreground="{StaticResource DarkForegroundBrush}"
-                               Text="Edited with ❤ by Amilious based on Saradomin" />
-
-                    <StackPanel Orientation="Horizontal"
-                                HorizontalAlignment="Center">
-                        <TextBlock Foreground="{StaticResource DarkForegroundBrush}"
-                                   Text="Made with ❤ by vddCore of " />
-                        <Button Classes="Hyperlink"
-                                Command="{Binding LaunchScapeWebsite}"
-                                Content="2009scape." />
-                    </StackPanel>
-
-                    <TextBlock HorizontalAlignment="Center"
-                               Foreground="{StaticResource DarkForegroundBrush}"
-                               Text="{Binding VersionString}" />
-
-                    <Button HorizontalAlignment="Center"
-                            Classes="Hyperlink"
-                            Command="{Binding LaunchProjectWebsite}"
-                            Content="visit project website" />
-                </StackPanel>
-            </HeaderedContentControl>
-            
-            <HeaderedContentControl Classes="GroupBox"
-                                    Header="plugin management"
-                                    DockPanel.Dock="Top">
-                <controls:PluginManagerView MaxHeight="310"/>
-            </HeaderedContentControl>
         </DockPanel>
         
     </Grid>

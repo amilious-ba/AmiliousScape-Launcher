@@ -25,6 +25,21 @@ namespace Saradomin.ViewModel.Controls {
         public LauncherSettings Launcher => _settingsService.Launcher;
         public ClientSettings Client => _settingsService.Client;
 
+        public int SwapIntervalIndex {
+            get => Client.SwapInterval switch {
+                0 => 1,
+                -1 => 2,
+                _ => 0 // 1 = VSync
+            };
+            set {
+                Client.SwapInterval = value switch {
+                    1 => 0,
+                    2 => -1,
+                    _ => 1
+                };
+            }
+        }
+        
         public string VersionString {
             get {
                 var version = Assembly.GetExecutingAssembly().GetName().Version!;
