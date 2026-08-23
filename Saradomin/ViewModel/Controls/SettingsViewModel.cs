@@ -40,6 +40,40 @@ namespace Saradomin.ViewModel.Controls {
             }
         }
         
+        public int VoiceoverSpeakerIndex
+        {
+            get => (Client.VoiceoverSpeaker ?? "").ToLowerInvariant() switch
+            {
+                "ostts" => 1,
+                "elevenlabs" => 2,
+                "openai" => 3,
+                _ => 0 // "" or anything else = None
+            };
+            set
+            {
+                Client.VoiceoverSpeaker = value switch
+                {
+                    1 => "ostts",
+                    2 => "elevenlabs",
+                    3 => "openai",
+                    _ => ""
+                };
+
+                OnPropertyChanged(nameof(IsElevenLabsSelected));
+                OnPropertyChanged(nameof(IsOpenAiSelected));
+            }
+        }
+
+        public bool IsElevenLabsSelected =>
+            string.Equals(Client.VoiceoverSpeaker, "elevenlabs", StringComparison.OrdinalIgnoreCase);
+
+        public bool IsOpenAiSelected =>
+            string.Equals(Client.VoiceoverSpeaker, "openai", StringComparison.OrdinalIgnoreCase);
+        
+        public bool LauncherUpdatePending { get; set; }
+        public string LauncherUpdateButtonText =>
+            LauncherUpdatePending ? "Update launcher" : "Check launcher";
+        
         public string VersionString {
             get {
                 var version = Assembly.GetExecutingAssembly().GetName().Version!;

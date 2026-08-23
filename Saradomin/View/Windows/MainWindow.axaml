@@ -1,5 +1,4 @@
-<glitonea:WindowEx x:Class="Saradomin.View.Windows.MainWindow"
-                   xmlns="https://github.com/avaloniaui"
+<glitonea:WindowEx x:Class="Saradomin.View.Windows.MainWindow" xmlns="https://github.com/avaloniaui"
                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                    xmlns:controls="clr-namespace:Saradomin.View.Controls"
                    xmlns:glitonea="clr-namespace:Glitonea.Controls;assembly=Glitonea"
@@ -15,14 +14,11 @@
                    SystemDecorations="None"
                    WindowStartupLocation="CenterScreen">
     <Grid>
-        <Grid HorizontalAlignment="Stretch"
-              VerticalAlignment="Stretch"
-              Background="Black"
-              IsVisible="{Binding DimContent}"
-              Opacity="0.7"
-              ZIndex="99999" />
-        <Border BorderBrush="{StaticResource DarkBorderBrush}"
-                BorderThickness="2">
+        <Grid HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Background="Black"
+              IsVisible="{Binding DimContent}" Opacity="0.7" ZIndex="99999" />
+        
+        <Border BorderBrush="{StaticResource DarkBorderBrush}" BorderThickness="2">
+            
             <Grid RowDefinitions="24,*,32">
                 <Grid Grid.Row="0"
                       Margin="0,-1,0,0"
@@ -85,7 +81,7 @@
                             BorderBrush="{StaticResource DarkBorderBrush}"
                             Padding="0"
                             Classes="PageSelector">
-                    <TabItem Width="110"
+                    <TabItem Width="100"
                              HorizontalContentAlignment="Center"
                              CornerRadius="0,0,0,8"
                              Header="AmiliousScape">
@@ -107,7 +103,7 @@
                         </Border>
                     </TabItem>
 
-                    <TabItem Width="110"
+                    <TabItem Width="100"
                              HorizontalContentAlignment="Center"
                              Header="2009Scape">
                         <Border Margin="4,4,4,0"
@@ -127,7 +123,7 @@
                         </Border>
                     </TabItem>
 
-                    <TabItem Width="95"
+                    <TabItem Width="88"
                              HorizontalContentAlignment="Center"
                              CornerRadius="0,0,0,0"
                              Header="settings">
@@ -145,7 +141,7 @@
                         </Border>
                     </TabItem>
                     
-                    <TabItem Width="95"
+                    <TabItem Width="88"
                              HorizontalContentAlignment="Center"
                              Header="plugins">
                         <Border Margin="4,4,4,0"
@@ -157,7 +153,7 @@
                         </Border>
                     </TabItem>
                     
-                    <TabItem Width="95"
+                    <TabItem Width="88"
                              HorizontalContentAlignment="Center"
                              Header="log">
                         <Border Margin="4,4,4,0"

@@ -5,7 +5,23 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$ROOT_DIR/Saradomin"
 OUT_DIR="$ROOT_DIR/dist"
 
-read -r -p "Version (e.g. 1.7.0): " VERSION
+# Latest GitHub release tag (e.g. v2.0.4 → 2.0.4)
+LATEST_TAG="$(
+  curl -fsSL -H "User-Agent: AmiliousScape-Launcher-Build" \
+    "https://api.github.com/repos/amilious-ba/AmiliousScape-Launcher/releases/latest" \
+    | sed -n 's/.*"tag_name":[[:space:]]*"\([^"]*\)".*/\1/p' \
+    | head -n1
+)" || true
+
+LATEST_VERSION="${LATEST_TAG#v}"
+LATEST_VERSION="${LATEST_VERSION#V}"
+
+if [[ -n "${LATEST_VERSION}" ]]; then
+  read -r -p "Version (latest on GitHub: ${LATEST_VERSION}): " VERSION
+else
+  read -r -p "Version (e.g. 1.7.0) [could not fetch GitHub latest]: " VERSION
+fi
+
 if [[ -z "${VERSION}" ]]; then
   echo "Version is required."
   exit 1
