@@ -56,7 +56,11 @@ namespace Saradomin.Infrastructure.Services {
             throw new NotSupportedException("Your platform is not supported.");
         }
 
-        public string GetInstallDirectory() => Path.Combine(CrossPlatform.GetAmiliousScapeHome(), FolderName);
+        public string GetInstallDirectory()
+        {
+            CrossPlatform.MigrateLegacyJreFolder(FolderName);
+            return CrossPlatform.GetJreDirectory(FolderName);
+        }
 
         public string GetJavaExecutablePath() {
             var root = GetInstallDirectory();

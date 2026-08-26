@@ -10,6 +10,36 @@ namespace Saradomin.Utilities {
     
     public static class CrossPlatform {
         
+        
+        public static string GetToolsDirectory()
+            => Path.Combine(GetAmiliousScapeHome(), "tools");
+
+        public static string GetFfplayDirectory()
+            => Path.Combine(GetToolsDirectory(), "ffplay");
+
+        public static string GetFfplayExecutablePath()
+            => Path.Combine(
+                GetFfplayDirectory(),
+                OperatingSystem.IsWindows() ? "ffplay.exe" : "ffplay");
+        
+        public static string GetJreDirectory(string folderName)
+            => Path.Combine(GetToolsDirectory(), folderName);
+        
+        /// <summary>
+        /// If the old .../jre11 folder exists and tools/jre11 does not, move it.
+        /// </summary>
+        public static void MigrateLegacyJreFolder(string folderName)
+        {
+            var oldPath = Path.Combine(GetAmiliousScapeHome(), folderName);
+            var newPath = GetJreDirectory(folderName);
+
+            if (Directory.Exists(newPath) || !Directory.Exists(oldPath))
+                return;
+
+            Directory.CreateDirectory(GetToolsDirectory());
+            Directory.Move(oldPath, newPath);
+        }
+        
         public static void LaunchUrl(string url) {
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows)) {
                 url = url.Replace("&", "^&");

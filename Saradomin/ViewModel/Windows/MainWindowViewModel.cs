@@ -31,6 +31,7 @@ namespace Saradomin.ViewModel.Windows {
         private readonly IJavaUpdateService _javaUpdateService;
         private readonly IRemoteConfigService _remoteConfigService;
         private readonly ILauncherUpdateService _launcherUpdateService;
+        private readonly IFfplayUpdateService _ffplayUpdateService;
 
         private LauncherSettings Launcher { get; }
 
@@ -50,13 +51,16 @@ namespace Saradomin.ViewModel.Windows {
 
         public MainWindowViewModel(IClientLaunchService launchService, IClientUpdateService updateService,
             ISettingsService settingsService, IRemoteConfigService remoteConfigService,
-            IJavaUpdateService javaUpdateService, ILauncherUpdateService launcherUpdateService) {
+            IJavaUpdateService javaUpdateService, ILauncherUpdateService launcherUpdateService, 
+            IFfplayUpdateService ffplayUpdateService) {
             _launchService = launchService;
             _updateService = updateService;
             _updateService.DownloadProgressChanged += OnClientDownloadProgressUpdated;
             _remoteConfigService = remoteConfigService;
             _javaUpdateService = javaUpdateService;
             _javaUpdateService.JavaDownloadProgressChanged += OnJavaDownloadProgressUpdated;
+            _ffplayUpdateService = ffplayUpdateService;
+            _ffplayUpdateService.DownloadProgressChanged += OnFfplayDownloadProgressUpdated;
             _launcherUpdateService = launcherUpdateService;
             _launcherUpdateService.DownloadProgressChanged += OnLauncherDownloadProgressUpdated;
 
@@ -75,7 +79,11 @@ namespace Saradomin.ViewModel.Windows {
 
             _settingsService.Launcher.JavaExecutableLocation ??= CrossPlatform.LocateJavaExecutable();
         }
-        
+
+        private void OnFfplayDownloadProgressUpdated(object sender, float e) {
+            LaunchText = $"Updating... (Downloading ffplay - {e * 100:F0}%)";
+        }
+
         private static Version GetLocalVersion() {
             var v = Assembly.GetExecutingAssembly().GetName().Version
                     ?? new Version(0, 0, 0, 0);
@@ -335,44 +343,77 @@ namespace Saradomin.ViewModel.Windows {
 
         private async Task ExecuteLaunchSequence(bool forceWait) {
             CanLaunch = false;
-            try {
+            try
+            {
                 if (!File.Exists(_updateService.PreferredTargetFilePath) ||
                     _settingsService.Launcher.CheckForClientUpdatesOnLaunch)
                     await AttemptUpdate();
-            }catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 CanLaunch = true;
                 LaunchText = $"Failed to update AmiliousScape: {e.Message}";
                 return;
             }
-            try {
-                var distribution = OperatingSystem.IsWindows() ? 
-                    JavaDistribution.Temurin11 : JavaDistribution.Temurin25;
+
+            try
+            {
+                var distribution = OperatingSystem.IsWindows()
+                    ? JavaDistribution.Temurin11
+                    : JavaDistribution.Temurin25;
 
                 if (!IsJavaVersion(distribution.MajorVersion.ToString()))
                     await _javaUpdateService.DownloadAndSetJava(_settingsService, distribution);
-            }catch (Exception e) {
+            }
+            catch (Exception e)
+            {
                 CanLaunch = true;
                 LaunchText = $"Failed to download and set Java: {e.Message}";
                 return;
+            }
+
+            var speaker = (_settingsService.Client.VoiceoverSpeaker ?? "").Trim().ToLowerInvariant();
+            var needsFfplay = speaker is "elevenlabs" or "openai";
+
+            if (needsFfplay && !File.Exists(CrossPlatform.GetFfplayExecutablePath()))
+            {
+                try
+                {
+                    LaunchText = "Updating... (Downloading ffplay)";
+                    await _ffplayUpdateService.EnsureFfplayAsync();
+                }
+                catch (Exception e)
+                {
+                    CanLaunch = true;
+                    LaunchText = $"Failed to download ffplay: {e.Message}";
+                    return;
+                }
             }
 
             if (!File.Exists(CrossPlatform.GetServerProfilePath(CrossPlatform.GetAmiliousScapeHome())) ||
                 _settingsService.Launcher.CheckForServerProfilesOnLaunch)
                 await AttemptServerProfileUpdate();
 
-            try {
+            try
+            {
                 LaunchLog = $"[{DateTime.Now:HH:mm:ss}] Starting launch...\n";
                 LaunchText = "Play! (already running)";
-                
-                SelectedTabIndex = 3;                            // 1) switch to log tab
-                new LogTabActivatedMessage().Broadcast();        // 2) then tell the window to scroll
-                var t = _launchService.LaunchClient();      // 3) then start the client
 
-                if (!_settingsService.Launcher.AllowMultiboxing || forceWait) await t;
-            }catch (Exception e) {
-                NotificationBox.DisplayNotification("Error",
+                SelectedTabIndex = 4;
+                new LogTabActivatedMessage().Broadcast();
+                var t = _launchService.LaunchClient();
+
+                if (!_settingsService.Launcher.AllowMultiboxing || forceWait)
+                    await t;
+            }
+            catch (Exception e)
+            {
+                NotificationBox.DisplayNotification(
+                    "Error",
                     $"Unable to launch the AmiliousScape client.\n\n{e.Message}");
-            }finally {
+            }
+            finally
+            {
                 CanLaunch = true;
                 LaunchText = "Play AmiliousScape!";
                 Message.Broadcast<ClientClosedMessage>();
