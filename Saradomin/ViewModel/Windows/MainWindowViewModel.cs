@@ -356,17 +356,25 @@ namespace Saradomin.ViewModel.Windows {
                 return;
             }
 
-            try
-            {
+            try {
                 var distribution = OperatingSystem.IsWindows()
                     ? JavaDistribution.Temurin11
                     : JavaDistribution.Temurin25;
 
+                // Always try to move .../jre11 → .../tools/jre11
+                CrossPlatform.MigrateLegacyJreFolder(distribution.FolderName);
+
+                var newJava = distribution.GetJavaExecutablePath();
+                if (File.Exists(newJava) &&
+                    !string.Equals(Launcher.JavaExecutableLocation, newJava, StringComparison.OrdinalIgnoreCase))
+                {
+                    Launcher.JavaExecutableLocation = newJava;
+                    _settingsService.SaveAll();
+                }
+
                 if (!IsJavaVersion(distribution.MajorVersion.ToString()))
                     await _javaUpdateService.DownloadAndSetJava(_settingsService, distribution);
-            }
-            catch (Exception e)
-            {
+            }catch (Exception e) {
                 CanLaunch = true;
                 LaunchText = $"Failed to download and set Java: {e.Message}";
                 return;

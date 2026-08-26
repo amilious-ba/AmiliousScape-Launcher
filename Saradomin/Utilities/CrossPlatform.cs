@@ -150,11 +150,11 @@ namespace Saradomin.Utilities {
                 RuntimeInformation.IsOSPlatform(OSPlatform.FreeBSD)) {
                 return Path.Combine(
                     // Get the XDG_DATA_HOME environment variable, or if it doesn't exist, use the default ~/.local/share
-                    LocateUnixUserHome(), "AmiliousScape", "saradomin");
+                    LocateUnixUserHome(), "AmiliousScape", "launcher");
             }
 
             return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
-                "AmiliousScape", "saradomin");
+                "AmiliousScape", "launcher");
         }
 
         public static string GetSingleplayerBackupsHome() {

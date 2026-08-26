@@ -4,7 +4,7 @@ namespace Saradomin.Model.Settings.Launcher
 {
     public class LauncherSettings : SettingsBase
     {
-        public const string FileName = "saradomin_launcher.json";
+        public const string FileName = "amiliousscape_launcher.json";
         
         public bool PlaceCloseButtonOnLeft { get; set; } = false;
         public bool ExitAfterLaunchingClient { get; set; } = false;
